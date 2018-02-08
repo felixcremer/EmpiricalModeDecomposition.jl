@@ -1,7 +1,7 @@
 module EmpiricalModeDecomposition
 using Dierckx
 
-export emd, eemd
+export emd, eemd, ceemd
 
 """
     localmaxmin!(x, maxes, mins)
@@ -37,11 +37,13 @@ end
     Sift the vector y whose points have x coordinates given by xvec.
 """
 function sift(y,xvec)
+    #println("Sift")
     s = sum(abs,y)
     ϵ = s
     maxes = Int[]
     mins = Int[]
     while ϵ > 0.1*s
+        #println("Sift While")
         EmpiricalModeDecomposition.localmaxmin!(y,maxes,mins)
         if length(maxes)<4 || length(mins)<4
             break
@@ -65,7 +67,7 @@ function emd(measurements,xvec, num_imfs=100)
     ycur = measurements
     #println(length(ycur))
     #println(sum(abs,ycur)>0.0&& !EmpiricalModeDecomposition.ismonotonic(ycur))
-    while length(imfs)<num_imfs <= sum(abs,ycur)>0.0 && !EmpiricalModeDecomposition.ismonotonic(ycur)
+    while length(imfs)<num_imfs && sum(abs,ycur)>0.0 && !EmpiricalModeDecomposition.ismonotonic(ycur)
     #    println("While: ", length(imfs))
         y = EmpiricalModeDecomposition.sift(ycur,xvec)
         push!(imfs,y)
@@ -83,12 +85,36 @@ end
 """
 function eemd(measurements, xvec, numtrails=100)
     imfs_mean  = @parallel (+) for i in 1:numtrails
-        random = randn(length(xvec))
-        imfs = EmpiricalModeDecomposition.emd(measurements+random, xvec, 4)
-        #println(length(imfs))
-        imfs
-    end
+                random = randn(length(xvec))
+                imfs = EmpiricalModeDecomposition.emd(measurements+random, xvec, 4)
+                #println(length(imfs))
+                imfs
+            end
 
     imfs_mean ./= numtrails
+end
+using Plots
+
+function ceemd(measurements, xvec, num_imfs=6, numtrails=100, β=0.02)
+    imfs = typeof(measurements)[]
+    ycur = @parallel (+) for i in 1:numtrails
+        EmpiricalModeDecomposition.sift(measurements+β*randn(length(xvec)),xvec)
+    end
+    k=0
+    ycur ./= numtrails
+    while length(imfs)<num_imfs && sum(abs, ycur) > 0.0 && !EmpiricalModeDecomposition.ismonotonic(ycur)
+        println(sum(ycur))
+        k+=1
+#        plot(ycur)
+        y = @parallel (+) for i in 1:numtrails
+            summand = ycur + 0.02*EmpiricalModeDecomposition.emd(randn(length(ycur)), xvec, k)[end]
+            EmpiricalModeDecomposition.sift(summand, xvec)
+        end
+        y ./=numtrails
+        println(maximum(y))
+        ycur = ycur-y
+        push!(imfs, ycur)
+    end
+    imfs
 end
 end # module
