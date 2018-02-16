@@ -93,7 +93,6 @@ function eemd(measurements, xvec, numtrails=100)
 
     imfs_mean ./= numtrails
 end
-using Plots
 
 function ceemd(measurements, xvec, num_imfs=6, numtrails=100, β=0.02)
     imfs = typeof(measurements)[]
