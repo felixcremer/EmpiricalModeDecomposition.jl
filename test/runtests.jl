@@ -14,6 +14,6 @@ end
 @testset "emd" begin
     x = -1:0.1:2π+1
     measurements = sin.(x)
-    imfs, residue = emd(measurements,x)
+    imfs = emd(measurements,x)
     @test imfs[1] ≈ measurements
 end
