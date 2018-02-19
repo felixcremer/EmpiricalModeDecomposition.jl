@@ -15,5 +15,5 @@ end
     x = -1:0.1:2π+1
     measurements = sin.(x)
     imfs = emd(measurements,x)
-    @test imfs[1] ≈ measurements
+    @test isapprox(imfs[1], measurements, 0.001)
 end
