@@ -30,3 +30,14 @@ end
     @test maxes == collect(x_max)
     @test mins  == collect(x_min)
 end
+
+@testset "startmax" begin
+    t = 0:0.5:10
+    y = zeros(t)
+    y[3]=1
+    y[5] = 0.5
+    maxes = Int[]
+    mins = Int[]
+    EmpiricalModeDecomposition.localmaxmin!(y,maxes,mins)
+    @test_broken EmpiricalModeDecomposition.startmax(y,t,maxes) == 1.5
+end
