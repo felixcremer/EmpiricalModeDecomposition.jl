@@ -83,10 +83,10 @@ end
     Return the Intrinsic Mode Functions and
     the residual of the ensemble Empirical Mode Decomposition of the measurements given on time steps xvec.
 """
-function eemd(measurements, xvec, numtrails=100)
+function eemd(measurements, xvec, numtrails=100, num_imfs=5)
     imfs_mean  = @parallel (+) for i in 1:numtrails
                 random = randn(length(xvec))
-                imfs = EmpiricalModeDecomposition.emd(measurements+random, xvec, 4)
+                imfs = EmpiricalModeDecomposition.emd(measurements+random, xvec, num_imfs)
                 #println(length(imfs))
                 imfs
             end
