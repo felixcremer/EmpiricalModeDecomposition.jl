@@ -17,3 +17,16 @@ end
     imfs = emd(measurements,x)
     @test isapprox(imfs[1], measurements, rtol=0.001)
 end
+
+@testset "localmaxmin" begin
+    maxes = Int[]
+    mins  = Int[]
+    x = zeros(100)
+    x_max = 2:10:100
+    x[x_max] = 1
+    x_min = 5:10:100
+    x[x_min]=-1
+    EmpiricalModeDecomposition.localmaxmin!(x,maxes,mins)
+    @test maxes == collect(x_max)
+    @test mins  == collect(x_min)
+end
