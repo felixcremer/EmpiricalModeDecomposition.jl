@@ -1,5 +1,8 @@
 module EmpiricalModeDecomposition
+using Interpolations
 using Dierckx
+using IterTools
+
 
 export emd, eemd, ceemd
 
@@ -21,7 +24,7 @@ function localmaxmin!(y,maxes::Vector{Int},mins::Vector{Int})
 end
 
 function startmin(y,xvec, mins)
-    startline = EmpiricalModeDecomposition.interpolate(xvec[mins[1:2]],y[mins[1:2]],[1],DierckXInterp(),1)[1]
+    startline = interpolate(xvec[mins[1:2]],y[mins[1:2]],[1],DierckXInterp(),1)[1]
     @show startline
     startline<first(y) ? startline : first(y)
 end
@@ -38,16 +41,16 @@ function endmax(y,xvec, maxes)
     startline>y[end] ? startline : y[end]
 end
 
-function endmax(y,xvec, maxes)
+function endmin(y,xvec, maxes)
     startline = EmpiricalModeDecomposition.interpolate(xvec[maxes[end-1:end]],y[maxes[end-1:end]],[1],DierckXInterp(),1)[1]
     #@show startline
     startline<y[end] ? startline : y[end]
 end
 
-ismonotonic{T}(x::AbstractArray{T})=isfinite(foldl((x,y)->y>=x ? y : typemax(T),typemin(T),x)) || isfinite(foldl((x,y)->y<=x ? y : typemin(T),typemax(T),x))
+ismonotonic(x::AbstractArray{T}) where T = isfinite(foldl((x,y)->y>=x ? y : typemax(T), x, init=typemin(T))) || isfinite(foldl((x,y)->y<=x ? y : typemin(T), x, init=typemax(T)))
 
 abstract type InterpMethod end
-immutable DierckXInterp <: InterpMethod end
+struct DierckXInterp <: InterpMethod end
 #immutable InterpolationsInterp <: InterpMethod end
 
 function interpolate(knotxvals::Vector,knotyvals::Vector,predictxvals::AbstractVector,m::DierckXInterp, k=3)
@@ -55,30 +58,100 @@ function interpolate(knotxvals::Vector,knotyvals::Vector,predictxvals::AbstractV
     Dierckx.evaluate(spl,predictxvals)
 end
 
+import Base.iterate
+
+
+struct SiftIterable
+    yvec
+    xvec
+end
+
+mutable struct SiftState
+    yvec
+    xvec
+    maxes::Vector{Int}
+    mins::Vector{Int}
+    s
+end
+
+
+
+function iterate(iter::SiftIterable)
+    maxes = Int[]
+    mins = Int[]
+    s =sum(abs, iter.yvec)
+    state = SiftState(iter.yvec, iter.xvec,maxes, mins, s)
+    return state,state
+end
+
+
+
+function iterate(iter::SiftIterable, state::SiftState)
+    localmaxmin!(state.yvec, state.maxes, state.mins)
+    if length(state.maxes)<4 || length(state.mins)<4
+        return nothing
+    end
+    maxTS = EmpiricalModeDecomposition.interpolate(state.xvec[state.maxes],state.yvec[state.maxes],state.xvec,DierckXInterp())
+    minTS = EmpiricalModeDecomposition.interpolate(state.xvec[state.mins],state.yvec[state.mins],state.xvec,DierckXInterp())
+    subs = (maxTS+minTS)/2
+    state.s =sum(abs,subs)
+    state.yvec = state.yvec - subs
+    return state, state
+end
+
+
+struct HaltingIterable{I, F}
+    iter::I
+    fun::F
+end
+
+function iterate(iter::HaltingIterable)
+    next = iterate(iter.iter)
+    return dispatch(iter, next)
+end
+
+function iterate(iter::HaltingIterable, (instruction, state))
+    if instruction == :halt return nothing end
+    next = iterate(iter.iter, state)
+    return dispatch(iter, next)
+end
+
+function dispatch(iter::HaltingIterable, next)
+    if next === nothing return nothing end
+    return next[1], (iter.fun(next[1]) ? :halt : :continue, next[2])
+end
+
+halt(iter::I, fun::F) where {I,F} = HaltingIterable{I,F}(iter, fun)
+
 """
     sift(y, xvec)
 
     Sift the vector y whose points have x coordinates given by xvec.
 """
-function sift(y,xvec)
-    #println("Sift")
-    s = sum(abs,y)
-    ϵ = s
-    maxes = Int[]
-    mins = Int[]
-    while ϵ > 0.1*s
-        #println("Sift While")
-        EmpiricalModeDecomposition.localmaxmin!(y,maxes,mins)
-        if length(maxes)<4 || length(mins)<4
-            break
-        end
-        maxTS = EmpiricalModeDecomposition.interpolate(xvec[maxes],y[maxes],xvec,DierckXInterp())
-        minTS = EmpiricalModeDecomposition.interpolate(xvec[mins],y[mins],xvec,DierckXInterp())
-        subs = (maxTS+minTS)/2
-        ϵ=sum(abs,subs)
-        y = y - subs
+function sift(yvec, xvec=1:length(yvec), tol=0.1)
+    ϵ = sum(abs, yvec) * tol
+    @show ϵ
+    stop(state) = state.s <= ϵ
+    imf=nothing
+    for step in halt(SiftIterable(yvec, xvec), stop)
+        @show sum(abs, step.yvec)
+        imf= step.yvec
     end
-    y
+    imf
+end
+
+
+
+struct EMDIterable
+    yvec
+    xvec
+end
+
+
+
+function iterate(iter::EMDIterable, imf_prev=iter.yvec)
+    imf = sift(imf_prev,state.xvec, 0.1)
+    return imf
 end
 
 """
@@ -118,7 +191,7 @@ function eemd(measurements, xvec, numtrails=100, num_imfs=5)
     imfs_mean ./= numtrails
 end
 
-function ceemd(measurements, xvec, num_imfs=6, numtrails=100, β=0.02)
+"""function ceemd(measurements, xvec, num_imfs=6, numtrails=100, β=0.02)
     imfs = typeof(measurements)[]
     ycur = @parallel (+) for i in 1:numtrails
         EmpiricalModeDecomposition.sift(measurements+β*randn(length(xvec)),xvec)
@@ -139,5 +212,5 @@ function ceemd(measurements, xvec, num_imfs=6, numtrails=100, β=0.02)
         push!(imfs, ycur)
     end
     imfs
-end
+end"""
 end # module

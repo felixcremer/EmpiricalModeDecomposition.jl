@@ -1,5 +1,5 @@
 using EmpiricalModeDecomposition
-using Base.Test
+using Test
 
 # write your own tests here
 @testset "ismonotonic" begin
@@ -23,9 +23,9 @@ end
     mins  = Int[]
     x = zeros(100)
     x_max = 2:10:100
-    x[x_max] = 1
+    x[x_max] .= 1
     x_min = 5:10:100
-    x[x_min]=-1
+    x[x_min] .= -1
     EmpiricalModeDecomposition.localmaxmin!(x,maxes,mins)
     @test maxes == collect(x_max)
     @test mins  == collect(x_min)
@@ -33,11 +33,22 @@ end
 
 @testset "startmax" begin
     t = 0:0.5:10
-    y = zeros(t)
+    y = zero(t)
     y[3]=1
     y[5] = 0.5
     maxes = Int[]
     mins = Int[]
     EmpiricalModeDecomposition.localmaxmin!(y,maxes,mins)
     @test_broken EmpiricalModeDecomposition.startmax(y,t,maxes) == 1.5
+end
+
+@testset "SiftIterable" begin
+    x = -1:0.1;2π+1
+    imf = 0.0
+    measurements = sin.(x)
+    for sift in Base.Iterators.take(EmpiricalModeDecomposition.SiftIterable(measurements,x),10)
+        @show sift
+        imf = sift.yvec
+    end
+    @test imf ≈ measurements
 end
