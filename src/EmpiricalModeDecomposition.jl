@@ -2,6 +2,7 @@ module EmpiricalModeDecomposition
 using Interpolations
 using Dierckx
 using IterTools
+using Random
 
 
 export emd, eemd, ceemd
@@ -164,9 +165,10 @@ function emd(measurements,xvec, num_imfs=100)
     ycur = measurements
     #println(length(ycur))
     #println(sum(abs,ycur)>0.0&& !EmpiricalModeDecomposition.ismonotonic(ycur))
-    while length(imfs)<num_imfs && sum(abs,ycur)>0.0 && !EmpiricalModeDecomposition.ismonotonic(ycur)
+    while length(imfs)<num_imfs && sum(abs,ycur)>0.0 && !ismonotonic(ycur)
     #    println("While: ", length(imfs))
-        y = EmpiricalModeDecomposition.sift(ycur,xvec)
+        #@show ycur
+        y = sift(ycur,xvec)
         push!(imfs,y)
         ycur = ycur-y
     end
@@ -180,18 +182,23 @@ end
     Return the Intrinsic Mode Functions and
     the residual of the ensemble Empirical Mode Decomposition of the measurements given on time steps xvec.
 """
-function eemd(measurements, xvec, numtrails=100, num_imfs=5)
-    imfs_mean  = @parallel (+) for i in 1:numtrails
-                random = randn(length(xvec))
-                imfs = EmpiricalModeDecomposition.emd(measurements+random, xvec, num_imfs)
-                #println(length(imfs))
-                imfs
+function eemd(measurements, xvec, numtrails=100, num_imfs=6)
+    random = randn(length(measurements))
+    imfs_mean = emd(measurements .+ random, xvec, num_imfs)
+    num_imfs = length(imfs_mean)
+    for i in 1:numtrails
+                @show length(imfs_mean)
+                randn!(random)
+                imfs = EmpiricalModeDecomposition.emd(measurements .+ random, xvec, num_imfs)
+                @show length(imfs)
+                imfs_mean .+= imfs
             end
 
     imfs_mean ./= numtrails
 end
 
-"""function ceemd(measurements, xvec, num_imfs=6, numtrails=100, β=0.02)
+
+function ceemd(measurements, xvec, num_imfs=6, numtrails=100, β=0.02)
     imfs = typeof(measurements)[]
     ycur = @parallel (+) for i in 1:numtrails
         EmpiricalModeDecomposition.sift(measurements+β*randn(length(xvec)),xvec)
@@ -212,5 +219,6 @@ end
         push!(imfs, ycur)
     end
     imfs
-end"""
+end
+
 end # module
