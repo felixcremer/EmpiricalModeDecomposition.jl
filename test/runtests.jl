@@ -39,16 +39,22 @@ end
     maxes = Int[]
     mins = Int[]
     EmpiricalModeDecomposition.localmaxmin!(y,maxes,mins)
-    @test_broken EmpiricalModeDecomposition.startmax(y,t,maxes) == 1.5
+    @test EmpiricalModeDecomposition.startmax(y,t,maxes) == 1.5
 end
 
 @testset "SiftIterable" begin
-    x = -1:0.1;2π+1
-    imf = 0.0
+    x = -1:0.1:2π+1
     measurements = sin.(x)
+    imf = zero(measurements)
     for sift in Base.Iterators.take(EmpiricalModeDecomposition.SiftIterable(measurements,x),10)
         @show sift
         imf = sift.yvec
     end
     @test imf ≈ measurements
+end
+
+@testset "EEMD" begin
+    x = -1:0.1:2π+1
+    measurements = sin.(x) .+ cos.(2*x) .+ 2 .*x
+    imf = eemd(measurements, x)
 end
