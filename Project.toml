@@ -1,5 +1,11 @@
+name = "EmpiricalModeDecomposition"
+uuid = "13f08ee4-7ac9-11e8-319c-07f4727f0a09"
+authors = ["Felix Cremer <felix.cremer@uni-jena.de>"]
+version = "0.1.0"
+
 [deps]
-GR = "28b8d3ca-fb5f-59d9-8090-bfdbd6d07a71"
+Dierckx = "39dd38d3-220a-591b-8e3c-4c3a8c710a94"
+Interpolations = "a98d9a8b-a2ab-59e6-89dd-64a1c18fca59"
 IterTools = "c8e1da08-722c-5040-9ed9-7db0dc04731e"
-PGFPlots = "3b7a836e-365b-5785-a47d-02c71176b4aa"
-Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
