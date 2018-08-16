@@ -187,12 +187,20 @@ function eemd(measurements, xvec, numtrails=100, num_imfs=6)
     imfs_mean = emd(measurements .+ random, xvec, num_imfs)
     num_imfs = length(imfs_mean)
     for i in 1:numtrails
-                @show length(imfs_mean)
-                randn!(random)
-                imfs = EmpiricalModeDecomposition.emd(measurements .+ random, xvec, num_imfs)
-                @show length(imfs)
-                imfs_mean .+= imfs
-            end
+        @show length(imfs_mean)
+
+        randn!(random)
+        imfs = EmpiricalModeDecomposition.emd(measurements .+ random, xvec, num_imfs)
+        if length(imfs) < length(imfs_mean)
+            imfs_mean[length(imfs)] = sum(imfs_mean[length(imfs):end])
+            imfs_mean = imfs_mean[1:length(imfs)]
+        elseif length(imfs) > length(imfs_mean)
+            imfs[length(imfs_mean)] = sum(imfs[length(imfs_mean):end])
+            imfs = imfs[1:length(imfs_mean)]
+        end
+        @show length(imfs), length(imfs_mean)
+        imfs_mean .+= imfs
+    end
 
     imfs_mean ./= numtrails
 end
