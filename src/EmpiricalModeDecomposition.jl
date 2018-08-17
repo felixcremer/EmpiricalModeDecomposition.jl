@@ -59,12 +59,13 @@ function interpolate(knotxvals::Vector,knotyvals::Vector,predictxvals::AbstractV
     Dierckx.evaluate(spl,predictxvals)
 end
 
-import Base.iterate
+import Base.iterate, Base.IteratorSize
 
+export EMDIterable, SiftIterable
 
-struct SiftIterable
-    yvec
-    xvec
+struct SiftIterable{T<:AbstractVector,U<:AbstractVector}
+    yvec ::T
+    xvec ::U
 end
 
 mutable struct SiftState
@@ -75,6 +76,7 @@ mutable struct SiftState
     s
 end
 
+Base.IteratorSize(::Type{SiftIterable}) = Base.SizeUnknown()
 
 
 function iterate(iter::SiftIterable)
@@ -142,17 +144,18 @@ function sift(yvec, xvec=1:length(yvec), tol=0.1)
 end
 
 
-
 struct EMDIterable
     yvec
     xvec
 end
 
+Base.IteratorSize(::Type{EMDIterable}) = Base.SizeUnknown()
+
 
 
 function iterate(iter::EMDIterable, imf_prev=iter.yvec)
-    imf = sift(imf_prev,state.xvec, 0.1)
-    return imf
+    imf = sift(imf_prev,iter.xvec, 0.1)
+    return imf,imf
 end
 
 """
@@ -206,27 +209,33 @@ function eemd(measurements, xvec, numtrails=100, num_imfs=6)
 end
 
 
-function ceemd(measurements, xvec, num_imfs=6, numtrails=100, β=0.02)
-    imfs = typeof(measurements)[]
-    ycur = @parallel (+) for i in 1:numtrails
-        EmpiricalModeDecomposition.sift(measurements+β*randn(length(xvec)),xvec)
-    end
-    k=0
-    ycur ./= numtrails
-    while length(imfs)<num_imfs && sum(abs, ycur) > 0.0 && !EmpiricalModeDecomposition.ismonotonic(ycur)
-        println(sum(ycur))
-        k+=1
-#        plot(ycur)
-        y = @parallel (+) for i in 1:numtrails
-            summand = ycur + 0.02*EmpiricalModeDecomposition.emd(randn(length(ycur)), xvec, k)[end]
-            EmpiricalModeDecomposition.sift(summand, xvec)
-        end
-        y ./=numtrails
-        println(maximum(y))
-        ycur = ycur-y
-        push!(imfs, ycur)
-    end
-    imfs
-end
+
+
+#
+# function ceemd(measurements, xvec, num_imfs=6, numtrails=100, β=0.02, noise_ens = [β .* randn(length(xvec)) for i in 1:numtrails])
+#     imfs = typeof(measurements)[]
+#     #noise_imfs = [EMD(noise) for noise in noise_ens]
+#     ycur = sift(measurements)
+#     for i in 1:numtrails
+#         ycur += sift(measurements .+ noise_ens[i],xvec)
+#     end
+#     ycur ./= numtrails
+#     k=0
+#     while length(imfs)<num_imfs && sum(abs, ycur) > 0.0 && !ismonotonic(ycur)
+#         println(sum(ycur))
+#         global k+=1
+# #        plot(ycur)
+#         y = sift(ycur, )
+#         y = @parallel (+) for i in 1:numtrails
+#             summand = ycur + 0.02*EmpiricalModeDecomposition.emd(randn(length(ycur)), xvec, k)[end]
+#             EmpiricalModeDecomposition.sift(summand, xvec)
+#         end
+#         y ./=numtrails
+#         println(maximum(y))
+#         ycur = ycur-y
+#         push!(imfs, ycur)
+#     end
+#     imfs
+# end
 
 end # module
