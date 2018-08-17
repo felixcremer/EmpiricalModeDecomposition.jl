@@ -26,13 +26,13 @@ end
 
 function startmin(y,xvec, mins)
     startline = interpolate(xvec[mins[1:2]],y[mins[1:2]],[1],DierckXInterp(),1)[1]
-    @show startline
+    #@show startline
     startline<first(y) ? startline : first(y)
 end
 
 function startmax(y,xvec, maxes)
     startline = EmpiricalModeDecomposition.interpolate(xvec[maxes[1:2]],y[maxes[1:2]],[1],DierckXInterp(),1)[1]
-    @show startline
+    #@show startline
     startline>first(y) ? startline : first(y)
 end
 
@@ -133,51 +133,104 @@ halt(iter::I, fun::F) where {I,F} = HaltingIterable{I,F}(iter, fun)
 """
 function sift(yvec, xvec=1:length(yvec), tol=0.1)
     ϵ = sum(abs, yvec) * tol
-    @show ϵ
+    #@show ϵ
     stop(state) = state.s <= ϵ
     imf=nothing
     for step in halt(SiftIterable(yvec, xvec), stop)
-        @show sum(abs, step.yvec)
+        #@show sum(abs, step.yvec)
         imf= step.yvec
     end
     imf
 end
 
-
-struct EMDIterable
-    yvec
-    xvec
+function ceemd(measurements, xvec; num_imfs=6, numtrails=100, β=0.02, noise_ens = [β .* randn(length(xvec)) for i in 1:numtrails])
+  CEEMDIterable(measurements,xvec,noise_ens)
 end
 
-Base.IteratorSize(::Type{EMDIterable}) = Base.SizeUnknown()
-
-
-
-function iterate(iter::EMDIterable, imf_prev=iter.yvec)
-    imf = sift(imf_prev,iter.xvec, 0.1)
-    return imf,imf
+struct EMDIterable{U<:AbstractVector,V<:AbstractVector}
+    yvec::U
+    xvec::V
 end
 
+Base.IteratorSize(::Type{EMDIterable{U,V}}) where {U,V} = Base.SizeUnknown()
+
+import EmpiricalModeDecomposition: sift, ismonotonic
+using Statistics
+struct CEEMDIterable{U<:AbstractVector,V<:AbstractVector,T<:AbstractVector}
+    yvec::U
+    xvec::V
+    noise_ens::T
+end
+struct CEEMDState
+  yvec
+  iter_ens
+  imf_state_ens
+  finished::Bool
+end
+Base.IteratorSize(::Type{CEEMDIterable{U,V,T}}) where {U,V,T} = Base.SizeUnknown()
+
+function Base.iterate(iter::CEEMDIterable)
+  imf0 = mean([sift(iter.yvec+noise,iter.xvec,0.1) for noise in iter.noise_ens])
+  iter_ens = EMDIterable.(iter.noise_ens,[iter.xvec])
+  state_ens = Tuple[]
+  imf_state_ens = iterate.(iter_ens)
+  imf0,CEEMDState(iter.yvec-imf0,iter_ens,imf_state_ens,false)
+end
+  
+function Base.iterate(iter::CEEMDIterable,state::CEEMDState) 
+  
+  vstop = var(iter.yvec)*1e-10
+  
+  if state.finished
+    
+    return nothing
+  
+  elseif sum(abs,state.yvec)>vstop && !ismonotonic(state.yvec)
+    
+    imf = mean([sift(state.yvec+noise[1],iter.xvec,0.1) for noise in state.imf_state_ens])
+    
+    for iens in 1:length(state.iter_ens)
+      r = iterate(state.iter_ens[iens],state.imf_state_ens[iens][2])
+      if r == nothing
+        fill!(state.imf_state_ens[iens][1], 0)
+      else
+        imf, ensstate = r
+        state.imf_state_ens[iens] = imf, ensstate
+      end
+    end
+    
+    newstate = CEEMDState(state.yvec-imf,state.iter_ens,state.imf_state_ens,false)
+    return imf,newstate
+  else
+    return state.yvec,CEEMDState(state.yvec,state.iter_ens,state.imf_state_ens,true)
+  end
+end
+
+
+
+function iterate(iter::EMDIterable, imf_prev=(iter.yvec,false))
+    if imf_prev[2]
+      return nothing
+    elseif sum(abs,imf_prev[1])>0.0 && !ismonotonic(imf_prev[1])
+      imf = sift(imf_prev[1],iter.xvec, 0.1)
+      return imf,(imf_prev[1]-imf,false)
+    else
+      return imf_prev[1],(imf_prev[1],true)
+    end
+end
+
+
+using Base.Iterators
 """
     emd(measurements, xvec)
 Return the Intrinsic Mode Functions and
 the residual of the Empirical Mode Decomposition of the measurements given on time steps given in xvec.
 """
 function emd(measurements,xvec, num_imfs=100)
-    imfs = typeof(measurements)[]
-    ycur = measurements
-    #println(length(ycur))
-    #println(sum(abs,ycur)>0.0&& !EmpiricalModeDecomposition.ismonotonic(ycur))
-    while length(imfs)<num_imfs && sum(abs,ycur)>0.0 && !ismonotonic(ycur)
-    #    println("While: ", length(imfs))
-        #@show ycur
-        y = sift(ycur,xvec)
-        push!(imfs,y)
-        ycur = ycur-y
-    end
-    push!(imfs, ycur)
-    imfs
+    collect(take(EMDIterable(measurements,xvec),num_imfs))
 end
+
+
 
 """
     eemd(measurements, xvec, numtrails=100)
@@ -190,7 +243,7 @@ function eemd(measurements, xvec, numtrails=100, num_imfs=6)
     imfs_mean = emd(measurements .+ random, xvec, num_imfs)
     num_imfs = length(imfs_mean)
     for i in 1:numtrails
-        @show length(imfs_mean)
+        #@show length(imfs_mean)
 
         randn!(random)
         imfs = EmpiricalModeDecomposition.emd(measurements .+ random, xvec, num_imfs)
@@ -201,7 +254,7 @@ function eemd(measurements, xvec, numtrails=100, num_imfs=6)
             imfs[length(imfs_mean)] = sum(imfs[length(imfs_mean):end])
             imfs = imfs[1:length(imfs_mean)]
         end
-        @show length(imfs), length(imfs_mean)
+        #@show length(imfs), length(imfs_mean)
         imfs_mean .+= imfs
     end
 
