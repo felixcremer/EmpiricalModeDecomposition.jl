@@ -5,7 +5,7 @@ using IterTools
 using Random
 
 
-export emd, eemd, ceemd
+export emd, eemd, ceemd, maketestdata
 
 """
     localmaxmin!(x, maxes, mins)
@@ -130,6 +130,7 @@ halt(iter::I, fun::F) where {I,F} = HaltingIterable{I,F}(iter, fun)
     sift(y, xvec)
 
     Sift the vector y whose points have x coordinates given by xvec.
+
 """
 function sift(yvec, xvec=1:length(yvec), tol=0.1)
     ϵ = sum(abs, yvec) * tol
@@ -176,19 +177,19 @@ function Base.iterate(iter::CEEMDIterable)
   imf_state_ens = iterate.(iter_ens)
   imf0,CEEMDState(iter.yvec-imf0,iter_ens,imf_state_ens,false)
 end
-  
-function Base.iterate(iter::CEEMDIterable,state::CEEMDState) 
-  
+
+function Base.iterate(iter::CEEMDIterable,state::CEEMDState)
+
   vstop = var(iter.yvec)*1e-10
-  
+
   if state.finished
-    
+
     return nothing
-  
+
   elseif sum(abs,state.yvec)>vstop && !ismonotonic(state.yvec)
-    
+
     imf = mean([sift(state.yvec+noise[1],iter.xvec,0.1) for noise in state.imf_state_ens])
-    
+
     for iens in 1:length(state.iter_ens)
       r = iterate(state.iter_ens[iens],state.imf_state_ens[iens][2])
       if r == nothing
@@ -198,7 +199,7 @@ function Base.iterate(iter::CEEMDIterable,state::CEEMDState)
         state.imf_state_ens[iens] = imf, ensstate
       end
     end
-    
+
     newstate = CEEMDState(state.yvec-imf,state.iter_ens,state.imf_state_ens,false)
     return imf,newstate
   else
@@ -226,7 +227,7 @@ using Base.Iterators
 Return the Intrinsic Mode Functions and
 the residual of the Empirical Mode Decomposition of the measurements given on time steps given in xvec.
 """
-function emd(measurements,xvec, num_imfs=100)
+function emd(measurements,xvec, num_imfs=6)
     collect(take(EMDIterable(measurements,xvec),num_imfs))
 end
 
@@ -290,5 +291,40 @@ end
 #     end
 #     imfs
 # end
+
+
+function maketestdata(seed)
+  Random.seed!(seed)
+  ## simulate data of length....
+  N_tim = 240
+  NpY   = 24         # samples/year
+  t     = 1:N_tim
+  t     = t./NpY # your time vector
+
+  # constant seasonal cycle
+  A   = 2          # amplitude
+  phi = 13*pi/12   # initial phase
+  S   = A*cos.(2*pi*t+phi)
+
+  # generate a linear trend
+  T = 0.1 + 0.0002.*t
+
+
+  # some other oscillation
+  a = 0.2
+  b = 0.1
+  C = (1+a*cos.(b*2*pi*t))
+
+  # simple (coloured) noise
+  φ = 0.3 # strengh of autocorrelation in noise
+  E = randn(N_tim).*0.1
+
+  for i = 2:N_tim
+    E[i] = φ*E[i-1]+(1-φ)*E[i]
+  end
+
+  X = S.*C + 2.*E
+  t,X,E
+end
 
 end # module
