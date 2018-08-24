@@ -143,7 +143,7 @@ function sift(yvec, xvec=1:length(yvec), tol=0.1)
     imf
 end
 
-function ceemd(measurements, xvec; num_imfs=6, numtrails=100, β=0.02, noise_ens = [β .* randn(length(xvec)) for i in 1:numtrails])
+function ceemd(measurements, xvec; numtrails=100, β=0.02, noise_ens = [β*std(measurements) .* randn(length(xvec)) for i in 1:numtrails])
   CEEMDIterable(measurements,xvec,noise_ens)
 end
 
@@ -176,19 +176,19 @@ function Base.iterate(iter::CEEMDIterable)
   imf_state_ens = iterate.(iter_ens)
   imf0,CEEMDState(iter.yvec-imf0,iter_ens,imf_state_ens,false)
 end
-  
-function Base.iterate(iter::CEEMDIterable,state::CEEMDState) 
-  
+
+function Base.iterate(iter::CEEMDIterable,state::CEEMDState)
+
   vstop = var(iter.yvec)*1e-10
-  
+
   if state.finished
-    
+
     return nothing
-  
+
   elseif sum(abs,state.yvec)>vstop && !ismonotonic(state.yvec)
-    
-    imf = mean([sift(state.yvec+noise[1],iter.xvec,0.1) for noise in state.imf_state_ens])
-    
+
+    imf = vec(median(hcat([sift(state.yvec+noise[1],iter.xvec,0.1) for noise in state.imf_state_ens]...),dims = 2))
+
     for iens in 1:length(state.iter_ens)
       r = iterate(state.iter_ens[iens],state.imf_state_ens[iens][2])
       if r == nothing
@@ -198,7 +198,7 @@ function Base.iterate(iter::CEEMDIterable,state::CEEMDState)
         state.imf_state_ens[iens] = imf, ensstate
       end
     end
-    
+
     newstate = CEEMDState(state.yvec-imf,state.iter_ens,state.imf_state_ens,false)
     return imf,newstate
   else
