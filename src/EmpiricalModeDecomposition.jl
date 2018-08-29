@@ -24,6 +24,16 @@ function localmaxmin!(y,maxes::Vector{Int},mins::Vector{Int})
     end
 end
 
+function zerocrossing!(y, crosses)
+    empty!(crosses)
+    for i ∈ 1:(length(y)-1)
+        if y[i] == zero(y[i]) || sign(y[i]) * sign(y[i+1]) == -1
+            push!(crosses, i)#
+        end
+    end
+end
+
+
 function startmin(y,xvec, mins)
     startline = interpolate(xvec[mins[1:2]],y[mins[1:2]],[1],DierckXInterp(),1)[1]
     #@show startline
@@ -66,6 +76,7 @@ export EMDIterable, SiftIterable
 struct SiftIterable{T<:AbstractVector,U<:AbstractVector}
     yvec ::T
     xvec ::U
+    stop_steps::Integer
 end
 
 mutable struct SiftState
@@ -73,7 +84,9 @@ mutable struct SiftState
     xvec
     maxes::Vector{Int}
     mins::Vector{Int}
+    crosses::Vector{Int}
     s
+    fix_steps::Integer
 end
 
 Base.IteratorSize(::Type{SiftIterable}) = Base.SizeUnknown()
@@ -83,15 +96,22 @@ function iterate(iter::SiftIterable)
     maxes = Int[]
     mins = Int[]
     s =sum(abs, iter.yvec)
-    state = SiftState(iter.yvec, iter.xvec,maxes, mins, s)
-    return state,state
+    crosses = Int[]
+
+    state = SiftState(iter.yvec, iter.xvec,maxes, mins, crosses, s,0)
+    return state ,state
 end
 
 
 
 function iterate(iter::SiftIterable, state::SiftState)
     localmaxmin!(state.yvec, state.maxes, state.mins)
-    if length(state.maxes)<4 || length(state.mins)<4
+    maxlen = length(state.maxes)
+    minlen = length(state.mins)
+    state.fix_steps == iter.stop_steps && return nothing
+    zerocrossing!(state.yvec,state.crosses)
+    abs(length(state.crosses) - maxlen - minlen) <=1 && (state.fix_steps +=1)
+    if maxlen<4 || minlen<4
         return nothing
     end
     maxTS = EmpiricalModeDecomposition.interpolate(state.xvec[state.maxes],state.yvec[state.maxes],state.xvec,DierckXInterp())
@@ -162,6 +182,7 @@ struct CEEMDIterable{U<:AbstractVector,V<:AbstractVector,T<:AbstractVector}
     xvec::V
     noise_ens::T
 end
+
 struct CEEMDState
   yvec
   iter_ens
