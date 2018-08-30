@@ -339,28 +339,28 @@ function maketestdata(seed)
 
   # constant seasonal cycle
   A   = 2          # amplitude
-  phi = 13*pi/12   # initial phase
-  S   = A*cos.(2*pi*t+phi)
+  phi = 13 * pi/12   # initial phase
+  S   = A .* cos.(2 .* pi .* t .+ phi)
 
   # generate a linear trend
-  T = 0.1 + 0.0002.*t
-
+  T = 0.1 .+ 0.2.*t
+  @show T
 
   # some other oscillation
   a = 0.2
   b = 0.1
-  C = (1+a*cos.(b*2*pi*t))
+  C = 1 .+ a .*cos.(b*2*pi*t)
 
   # simple (coloured) noise
   φ = 0.3 # strengh of autocorrelation in noise
-  E = randn(N_tim).*0.1
+  E = randn(N_tim) .* 0.1
 
   for i = 2:N_tim
     E[i] = φ*E[i-1]+(1-φ)*E[i]
   end
 
-  X = S.*C + 2.*E
-  t,X,E
+  X = S .* C .+ 2. .*E .+ T
+  t, X, [S,C,E,T]
 end
 
 end # module
