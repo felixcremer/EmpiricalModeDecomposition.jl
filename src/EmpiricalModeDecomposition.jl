@@ -230,14 +230,15 @@ function Base.iterate(iter::CEEMDIterable,state::CEEMDState)
       if r == nothing
         fill!(state.imf_state_ens[iens][1], 0)
       else
-        imf, ensstate = r
-        state.imf_state_ens[iens] = imf, ensstate
+        imf_noise, ensstate = r
+        state.imf_state_ens[iens] = imf_noise, ensstate
       end
     end
 
     newstate = CEEMDState(state.yvec-imf,state.iter_ens,state.imf_state_ens,false)
     return imf,newstate
   else
+    @show state.yvec
     return state.yvec,CEEMDState(state.yvec,state.iter_ens,state.imf_state_ens,true)
   end
 end
