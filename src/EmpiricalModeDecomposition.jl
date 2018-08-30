@@ -114,8 +114,22 @@ function iterate(iter::SiftIterable, state::SiftState)
     if maxlen<4 || minlen<4
         return nothing
     end
-    maxTS = EmpiricalModeDecomposition.interpolate(state.xvec[state.maxes],state.yvec[state.maxes],state.xvec,DierckXInterp())
-    minTS = EmpiricalModeDecomposition.interpolate(state.xvec[state.mins],state.yvec[state.mins],state.xvec,DierckXInterp())
+    smin = startmin(state.yvec, state.xvec, state.mins)
+    smax = startmax(state.yvec, state.xvec, state.maxes)
+    emin = endmin(state.yvec, state.xvec, state.mins)
+    emax = endmax(state.yvec, state.xvec, state.maxes)
+    #state.yvec[1] = smax
+    #state.yvec[end] =emax
+    #pushfirst!(state.mins,1)
+    #push!(state.mins, length(state.yvec))
+    #pushfirst!(state.maxes,1)
+    #push!(state.maxes, length(state.yvec))
+    #@show [first(state.xvec); state.xvec[state.maxes]; last(state.xvec)]
+    #@show [smax; state.yvec[state.maxes]; emax]
+    maxTS = EmpiricalModeDecomposition.interpolate([first(state.xvec); state.xvec[state.maxes]; last(state.xvec)],[smax; state.yvec[state.maxes]; emax],state.xvec,DierckXInterp())
+    #state.yvec[1] = smin
+    #state.yvec[end] = emin
+    minTS = EmpiricalModeDecomposition.interpolate([first(state.xvec); state.xvec[state.mins]; last(state.xvec)],[smin; state.yvec[state.mins]; emin],state.xvec,DierckXInterp())
     subs = (maxTS+minTS)/2
     state.s =sum(abs,subs)
     state.yvec = state.yvec - subs
