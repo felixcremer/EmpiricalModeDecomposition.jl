@@ -89,6 +89,6 @@ function maketestdata(seed)
     E[i] = φ*E[i-1]+(1-φ)*E[i]
   end
 
-  X = S.*C + 2 .* E
+  X = S.*C + 2 .*E
   t,X,E
 end

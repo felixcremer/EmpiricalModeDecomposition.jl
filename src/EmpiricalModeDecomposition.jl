@@ -181,8 +181,8 @@ function sift(yvec, xvec=1:length(yvec), tol=0.1)
     imf
 end
 
-function ceemd(measurements, xvec; num_imfs=6, numtrails=100, β=0.02, noise_ens = [β .* randn(length(xvec)) for i in 1:numtrails])
-  CEEMDIterable(measurements,xvec,noise_ens)
+function ceemd(measurements, xvec; num_imfs=6, numtrails=100, β=0.04, noise_ens = [β*std(measurements) .* randn(length(xvec)) for i in 1:numtrails])
+  collect(take(CEEMDIterable(measurements,xvec,noise_ens),num_imfs))
 end
 
 struct EMDIterable{U<:AbstractVector,V<:AbstractVector}
