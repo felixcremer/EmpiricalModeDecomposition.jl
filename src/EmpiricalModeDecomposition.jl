@@ -167,14 +167,17 @@ halt(iter::I, fun::F) where {I,F} = HaltingIterable{I,F}(iter, fun)
 
 """
 function sift(yvec, xvec=1:length(yvec), tol=0.1)
-    ϵ = sum(abs, yvec) * tol
+    ϵ = var(yvec) * tol
     #@show ϵ
     stop(state) = state.s <= ϵ
     imf=nothing
-    for step in halt(SiftIterable(yvec, xvec), stop)
+    num_steps = 0
+    for (i, step) in enumerate(halt(SiftIterable(yvec, xvec, 4), stop))
         #@show sum(abs, step.yvec)
         imf= step.yvec
+        num_steps = i
     end
+    #@show num_steps
     imf
 end
 
