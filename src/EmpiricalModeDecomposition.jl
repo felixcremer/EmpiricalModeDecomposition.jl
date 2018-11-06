@@ -33,29 +33,49 @@ function zerocrossing!(y, crosses)
     end
 end
 
+function get_edgepoint(y, xvec, extremas, pos, comp)
+ #the x values must be embedded into a tuple
+    #@show knots
+    if pos == first
+        index = [1,2]
+    elseif pos == last
+        index = [length(extremas) - 1, length(extremas)]
+    end
+    knots = (xvec[extremas[index]],)
+    itp = Interpolations.interpolate(knots,y[extremas[index]], Gridded(Linear()))
+    expf = extrapolate(itp, Linear())
+    edgepoint = expf(pos(xvec))
+    @show edgepoint
+    if comp(edgepoint, pos(y))
+        edgepoint
+    else
+        edgepoint = pos(y)
+    end
+    return edgepoint
+end
 
 function startmin(y,xvec, mins)
-    startline = interpolate(xvec[mins[1:2]],y[mins[1:2]],[1],DierckXInterp(),1)[1]
-    #@show startline
-    startline<first(y) ? startline : first(y)
+    edgepoint = get_edgepoint(y, xvec, mins, [1,2])
+    edgepoint<first(y) ? edgepoint : first(y)
 end
 
 function startmax(y,xvec, maxes)
-    startline = EmpiricalModeDecomposition.interpolate(xvec[maxes[1:2]],y[maxes[1:2]],[1],DierckXInterp(),1)[1]
-    #@show startline
-    startline>first(y) ? startline : first(y)
+    edgepoint = get_edgepoint(y, xvec, maxes, [1,2])
+    edgepoint>first(y) ? edgepoint : first(y)
 end
 
 function endmax(y,xvec, maxes)
-    startline = EmpiricalModeDecomposition.interpolate(xvec[maxes[end-1:end]],y[maxes[end-1:end]],[1],DierckXInterp(),1)[1]
+    maxes_len = length(maxes)
+    edgepoint = get_edgepoint(y, xvec, maxes, [maxes_len - 1, maxes_len])
     #@show startline
-    startline>y[end] ? startline : y[end]
+    edgepoint > y[end] ? edgepoint : y[end]
 end
 
-function endmin(y,xvec, maxes)
-    startline = EmpiricalModeDecomposition.interpolate(xvec[maxes[end-1:end]],y[maxes[end-1:end]],[1],DierckXInterp(),1)[1]
+function endmin(y,xvec, mins)
+    mins_len = length(mins)
+    edgepoint = get_edgepoint(y, xvec, mins, [mins_len - 1, mins_len])
     #@show startline
-    startline<y[end] ? startline : y[end]
+    edgepoint < y[end] ? edgepoint : y[end]
 end
 
 ismonotonic(x::AbstractArray{T}) where T = isfinite(foldl((x,y)->y>=x ? y : typemax(T), x, init=typemin(T))) || isfinite(foldl((x,y)->y<=x ? y : typemin(T), x, init=typemax(T)))
@@ -66,6 +86,7 @@ struct DierckXInterp <: InterpMethod end
 
 function interpolate(knotxvals::Vector,knotyvals::Vector,predictxvals::AbstractVector,m::DierckXInterp, k=3)
     spl = Dierckx.Spline1D(knotxvals, knotyvals, k=k)
+    #@show spl, predictxvals
     Dierckx.evaluate(spl,predictxvals)
 end
 
@@ -114,10 +135,10 @@ function iterate(iter::SiftIterable, state::SiftState)
     if maxlen<4 || minlen<4
         return nothing
     end
-    smin = startmin(state.yvec, state.xvec, state.mins)
-    smax = startmax(state.yvec, state.xvec, state.maxes)
-    emin = endmin(state.yvec, state.xvec, state.mins)
-    emax = endmax(state.yvec, state.xvec, state.maxes)
+    smin = get_edgepoint(state.yvec, state.xvec, state.mins, first, isless)
+    smax = get_edgepoint(state.yvec, state.xvec, state.maxes, first, !isless)
+    emin = get_edgepoint(state.yvec, state.xvec, state.mins, last, isless)
+    emax = get_edgepoint(state.yvec, state.xvec, state.maxes, last, !isless)
     #state.yvec[1] = smax
     #state.yvec[end] =emax
     #pushfirst!(state.mins,1)
@@ -226,7 +247,7 @@ function Base.iterate(iter::CEEMDIterable,state::CEEMDState)
 
   elseif sum(abs,state.yvec)>vstop && !ismonotonic(state.yvec)
 
-    imf = mean([sift(state.yvec+noise[1],iter.xvec,0.1) for noise in state.imf_state_ens])
+      imf = vec(median(hcat([sift(state.yvec+noise[1],iter.xvec,0.1) for noise in state.imf_state_ens]...),dims = 2))
 
     for iens in 1:length(state.iter_ens)
       r = iterate(state.iter_ens[iens],state.imf_state_ens[iens][2])

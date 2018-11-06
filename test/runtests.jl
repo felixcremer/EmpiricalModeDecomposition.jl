@@ -31,23 +31,28 @@ end
     @test mins  == collect(x_min)
 end
 
-@testset "startmax" begin
+@testset "get_edgepoint" begin
     t = 0:0.5:10
     y = zero(t)
     y[3]=1
     y[5] = 0.5
+    y[17] = 0.5
+    y[19] = 1.0
     maxes = Int[]
     mins = Int[]
     EmpiricalModeDecomposition.localmaxmin!(y,maxes,mins)
-    @test EmpiricalModeDecomposition.startmax(y,t,maxes) == 1.5
+    @show maxes
+    @test EmpiricalModeDecomposition.get_edgepoint(y,t,maxes, first, !isless) == 1.5
+    @test EmpiricalModeDecomposition.get_edgepoint(y,t,maxes, last, !isless)  ==1.5
 end
+
 
 @testset "SiftIterable" begin
     x = -1:0.1:2π+1
     measurements = sin.(x)
     imf = zero(measurements)
-    for sift in Base.Iterators.take(EmpiricalModeDecomposition.SiftIterable(measurements,x),10)
-        @show sift
+    for sift in Base.Iterators.take(EmpiricalModeDecomposition.SiftIterable(measurements,x,6),10)
+        #@show sift
         imf = sift.yvec
     end
     @test imf ≈ measurements
