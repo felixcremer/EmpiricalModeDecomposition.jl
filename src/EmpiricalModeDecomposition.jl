@@ -24,6 +24,13 @@ function localmaxmin!(y,maxes::Vector{Int},mins::Vector{Int})
     end
 end
 
+
+"""
+    zerocrossing!(y, crosses)
+Compute the indices of zerocrossings of a vector
+It searches for elements which are either zero or near a signflip
+and pushes the indices into crosses.
+"""
 function zerocrossing!(y, crosses)
     empty!(crosses)
     for i ∈ 1:(length(y)-1)
