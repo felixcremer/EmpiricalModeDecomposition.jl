@@ -40,6 +40,10 @@ function zerocrossing!(y, crosses)
     end
 end
 
+"""
+    get_edgepoint(y, xvec, extremas, pos, comp)
+Compute the edgepoint which should be used as the extrema on the edge for the spline computation.
+"""
 function get_edgepoint(y, xvec, extremas, pos, comp)
  #the x values must be embedded into a tuple
     #@show knots
@@ -61,29 +65,6 @@ function get_edgepoint(y, xvec, extremas, pos, comp)
     return edgepoint
 end
 
-function startmin(y,xvec, mins)
-    edgepoint = get_edgepoint(y, xvec, mins, [1,2])
-    edgepoint<first(y) ? edgepoint : first(y)
-end
-
-function startmax(y,xvec, maxes)
-    edgepoint = get_edgepoint(y, xvec, maxes, [1,2])
-    edgepoint>first(y) ? edgepoint : first(y)
-end
-
-function endmax(y,xvec, maxes)
-    maxes_len = length(maxes)
-    edgepoint = get_edgepoint(y, xvec, maxes, [maxes_len - 1, maxes_len])
-    #@show startline
-    edgepoint > y[end] ? edgepoint : y[end]
-end
-
-function endmin(y,xvec, mins)
-    mins_len = length(mins)
-    edgepoint = get_edgepoint(y, xvec, mins, [mins_len - 1, mins_len])
-    #@show startline
-    edgepoint < y[end] ? edgepoint : y[end]
-end
 
 ismonotonic(x::AbstractArray{T}) where T = isfinite(foldl((x,y)->y>=x ? y : typemax(T), x, init=typemin(T))) || isfinite(foldl((x,y)->y<=x ? y : typemin(T), x, init=typemax(T)))
 
