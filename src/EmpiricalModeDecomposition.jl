@@ -56,7 +56,7 @@ function get_edgepoint(y, xvec, extremas, pos, comp)
     itp = Interpolations.interpolate(knots,y[extremas[index]], Gridded(Linear()))
     expf = extrapolate(itp, Linear())
     edgepoint = expf(pos(xvec))
-    @show edgepoint
+    #@show edgepoint
     if comp(edgepoint, pos(y))
         edgepoint
     else
@@ -191,7 +191,11 @@ function sift(yvec, xvec=1:length(yvec), tol=0.1)
 end
 
 function ceemd(measurements, xvec; num_imfs=6, numtrails=100, β=0.04, noise_ens = [β*std(measurements) .* randn(length(xvec)) for i in 1:numtrails])
-  collect(take(CEEMDIterable(measurements,xvec,noise_ens),num_imfs))
+    imfs = collect(take(CEEMDIterable(measurements,xvec,noise_ens),num_imfs))
+    @show size.(imfs)
+    residual = measurements - sum(imfs)
+    push!(imfs, residual)
+    return imfs
 end
 
 struct EMDIterable{U<:AbstractVector,V<:AbstractVector}
