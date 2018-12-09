@@ -316,6 +316,38 @@ end
 
 
 
+function tone_masking(ys, xs, tone)
+    ys_plus = ys .+ tone
+    ys_minus = ys .- tone
+    phi_plus = sift(ys_plus)
+    phi_minus = sift(ys_minus)
+    return (phi_plus .+ phi_minus) ./ 2
+end
+
+
+function iaestimation(imf, xs)
+    r = abs.(imf)
+    maxes = Int[]
+    mins = Int[]
+    localmaxmin!(imf, maxes, mins)
+    EmpiricalModeDecomposition.interpolate(xs[maxes], imf[maxes], xs, DierckXInterp())
+end
+
+
+function iterAMremoval(imf, xvec)
+    g = imf
+    n=1
+    b = zero(imf)
+    while any(b .!=1) && n<=3
+        b = iaestimation(imf, xvec)
+        g = g ./ b
+        n+=1
+    end
+    g
+end
+
+
+
 
 #
 # function ceemd(measurements, xvec, num_imfs=6, numtrails=100, β=0.02, noise_ens = [β .* randn(length(xvec)) for i in 1:numtrails])
