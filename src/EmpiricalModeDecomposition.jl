@@ -56,7 +56,7 @@ function get_edgepoint(y, xvec, extremas, pos, comp)
     itp = Interpolations.interpolate(knots,y[extremas[index]], Gridded(Linear()))
     expf = extrapolate(itp, Linear())
     edgepoint = expf(pos(xvec))
-    @show edgepoint
+    #@show edgepoint
     if comp(edgepoint, pos(y))
         edgepoint
     else
@@ -196,7 +196,11 @@ end
 
 
 function ceemd(measurements, xvec; num_imfs=6, numtrails=100, β=0.04, noise_ens = [β*std(measurements) .* randn(length(xvec)) for i in 1:numtrails])
-  collect(take(CEEMDIterable(measurements,xvec,noise_ens),num_imfs))
+    imfs = collect(take(CEEMDIterable(measurements,xvec,noise_ens),num_imfs))
+    @show size.(imfs)
+    residual = measurements - sum(imfs)
+    push!(imfs, residual)
+    return imfs
 end
 
 struct EMDIterable{U<:AbstractVector,V<:AbstractVector}
@@ -313,6 +317,38 @@ function eemd(measurements, xvec, numtrails=100, num_imfs=6)
     end
 
     imfs_mean ./= numtrails
+end
+
+
+
+function tone_masking(ys, xs, tone)
+    ys_plus = ys .+ tone
+    ys_minus = ys .- tone
+    phi_plus = sift(ys_plus)
+    phi_minus = sift(ys_minus)
+    return (phi_plus .+ phi_minus) ./ 2
+end
+
+
+function iaestimation(imf, xs)
+    r = abs.(imf)
+    maxes = Int[]
+    mins = Int[]
+    localmaxmin!(imf, maxes, mins)
+    EmpiricalModeDecomposition.interpolate(xs[maxes], imf[maxes], xs, DierckXInterp())
+end
+
+
+function iterAMremoval(imf, xvec)
+    g = imf
+    n=1
+    b = zero(imf)
+    while any(b .!=1) && n<=3
+        b = iaestimation(imf, xvec)
+        g = g ./ b
+        n+=1
+    end
+    g
 end
 
 
