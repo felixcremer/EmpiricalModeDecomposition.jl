@@ -65,8 +65,12 @@ function get_edgepoint(y, xvec, extremas, pos, comp)
     return edgepoint
 end
 
-
-ismonotonic(x::AbstractArray{T}) where T = isfinite(foldl((x,y)->y>=x ? y : typemax(T), x, init=typemin(T))) || isfinite(foldl((x,y)->y<=x ? y : typemin(T), x, init=typemax(T)))
+"""
+ismonotonic(x::AbstractVector)
+Check wether x is monotonic.
+This means, every value is either larger or smaller than the preceding value.
+"""
+ismonotonic(x::AbstractVector{T}) where T = isfinite(foldl((x,y)->y>=x ? y : typemax(T), x, init=typemin(T))) || isfinite(foldl((x,y)->y<=x ? y : typemin(T), x, init=typemax(T)))
 
 abstract type InterpMethod end
 struct DierckXInterp <: InterpMethod end
@@ -189,6 +193,7 @@ function sift(yvec, xvec=1:length(yvec), tol=0.1)
     #@show num_steps
     imf
 end
+
 
 function ceemd(measurements, xvec; num_imfs=6, numtrails=100, β=0.04, noise_ens = [β*std(measurements) .* randn(length(xvec)) for i in 1:numtrails])
   collect(take(CEEMDIterable(measurements,xvec,noise_ens),num_imfs))
