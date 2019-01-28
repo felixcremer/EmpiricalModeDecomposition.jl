@@ -54,7 +54,7 @@ function get_edgepoint(y, xvec, extremas, pos, comp)
     end
     knots = (xvec[extremas[index]],)
     itp = Interpolations.interpolate(knots,y[extremas[index]], Gridded(Linear()))
-    expf = extrapolate(itp, Linear())
+    expf = extrapolate(itp, Line())
     edgepoint = expf(pos(xvec))
     #@show edgepoint
     if comp(edgepoint, pos(y))
