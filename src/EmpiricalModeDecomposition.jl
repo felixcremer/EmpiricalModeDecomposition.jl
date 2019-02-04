@@ -54,7 +54,7 @@ function get_edgepoint(y, xvec, extremas, pos, comp)
     end
     knots = (xvec[extremas[index]],)
     itp = Interpolations.interpolate(knots,y[extremas[index]], Gridded(Linear()))
-    expf = extrapolate(itp, Linear())
+    expf = extrapolate(itp, Line())
     edgepoint = expf(pos(xvec))
     #@show edgepoint
     if comp(edgepoint, pos(y))
@@ -76,7 +76,7 @@ abstract type InterpMethod end
 struct DierckXInterp <: InterpMethod end
 #immutable InterpolationsInterp <: InterpMethod end
 
-function interpolate(knotxvals::Vector,knotyvals::Vector,predictxvals::AbstractVector,m::DierckXInterp, k=3)
+function interpolate(knotxvals,knotyvals,predictxvals,m::DierckXInterp, k=3)
     spl = Dierckx.Spline1D(knotxvals, knotyvals, k=k)
     #@show spl, predictxvals
     Dierckx.evaluate(spl,predictxvals)
@@ -197,7 +197,7 @@ end
 
 function ceemd(measurements, xvec; num_imfs=6, numtrails=100, β=0.04, noise_ens = [β*std(measurements) .* randn(length(xvec)) for i in 1:numtrails])
     imfs = collect(take(CEEMDIterable(measurements,xvec,noise_ens),num_imfs))
-    @show size.(imfs)
+    #@show size.(imfs)
     residual = measurements - sum(imfs)
     push!(imfs, residual)
     return imfs
@@ -351,7 +351,11 @@ function iterAMremoval(imf, xvec)
     g
 end
 
-
+function IMFdemod(imf, xvec)
+    a = iaestimation(imf, xvec)
+    s_fm = iterAMremoval(imf, xvec)
+    σ_fm = -sign.()
+end
 
 
 #
