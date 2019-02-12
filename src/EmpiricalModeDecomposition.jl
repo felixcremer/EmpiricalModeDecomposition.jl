@@ -5,7 +5,9 @@ using IterTools
 using Random
 
 
-export emd, eemd, ceemd, maketestdata
+export emd, eemd, ceemd, maketestdata, @bootstrap
+
+include("bootstrap.jl")
 
 """
     localmaxmin!(x, maxes, mins)
