@@ -1,5 +1,4 @@
 using TimeseriesSurrogates
-using Plots
 # Idea is, that I can set a function and a number of bootstraps with surrogate method
 # And the bootstrap function (or macro) redos the function with the result replaced by the surrogate of the result.
 

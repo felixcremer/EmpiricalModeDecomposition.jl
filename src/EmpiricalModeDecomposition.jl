@@ -92,6 +92,7 @@ struct SiftIterable{T<:AbstractVector,U<:AbstractVector}
     yvec ::T
     xvec ::U
     stop_steps::Integer
+    stop
 end
 
 mutable struct SiftState
@@ -118,12 +119,12 @@ function iterate(iter::SiftIterable)
 end
 
 
-
 function iterate(iter::SiftIterable, state::SiftState)
+    state.fix_steps == iter.stop_steps && return nothing
+    iter.stop(state) && return nothing
     localmaxmin!(state.yvec, state.maxes, state.mins)
     maxlen = length(state.maxes)
     minlen = length(state.mins)
-    state.fix_steps == iter.stop_steps && return nothing
     zerocrossing!(state.yvec,state.crosses)
     abs(length(state.crosses) - maxlen - minlen) <=1 && (state.fix_steps +=1)
     if maxlen<4 || minlen<4
@@ -169,7 +170,7 @@ function iterate(iter::HaltingIterable, (instruction, state))
 end
 
 function dispatch(iter::HaltingIterable, next)
-    if next === nothing return nothing end
+    next === nothing && return nothing
     return next[1], (iter.fun(next[1]) ? :halt : :continue, next[2])
 end
 
@@ -187,7 +188,7 @@ function sift(yvec, xvec=1:length(yvec), tol=0.1)
     stop(state) = state.s <= ϵ
     imf=nothing
     num_steps = 0
-    for (i, step) in enumerate(halt(SiftIterable(yvec, xvec, 4), stop))
+    for (i, step) in enumerate(SiftIterable(yvec, xvec, 4, stop))
         #@show sum(abs, step.yvec)
         imf= step.yvec
         num_steps = i
