@@ -3,12 +3,15 @@ using Interpolations
 using Dierckx
 using IterTools
 using Random
+using Statistics
+import Base.iterate, Base.IteratorSize
 
-
+export EMDIterable, SiftIterable
 export emd, eemd, ceemd, maketestdata
 
 """
-    localmaxmin!(x, maxes, mins)
+localmaxmin!(x, maxes, mins)
+
 Detect the local extrema of x.
 Push the maxima into maxes and the minima into mins.
 """
@@ -26,7 +29,8 @@ end
 
 
 """
-    zerocrossing!(y, crosses)
+zerocrossing!(y, crosses)
+
 Compute the indices of zerocrossings of a vector
 It searches for elements which are either zero or near a signflip
 and pushes the indices into crosses.
@@ -41,7 +45,8 @@ function zerocrossing!(y, crosses)
 end
 
 """
-    get_edgepoint(y, xvec, extremas, pos, comp)
+get_edgepoint(y, xvec, extremas, pos, comp)
+
 Compute the edgepoint which should be used as the extrema on the edge for the spline computation.
 """
 function get_edgepoint(y, xvec, extremas, pos, comp)
@@ -67,6 +72,7 @@ end
 
 """
 ismonotonic(x::AbstractVector)
+
 Check wether x is monotonic.
 This means, every value is either larger or smaller than the preceding value.
 """
@@ -82,23 +88,43 @@ function interpolate(knotxvals::Vector,knotyvals::Vector,predictxvals::AbstractV
     Dierckx.evaluate(spl,predictxvals)
 end
 
-import Base.iterate, Base.IteratorSize
 
-export EMDIterable, SiftIterable
+"""
+SiftIterable{T, U}
 
+Iterator for the sifting algorithm.
+The time series values are an AbstractVector of type T,
+and the time positions are an AbstractVector of type U.
+Fields:
+"""
 struct SiftIterable{T<:AbstractVector,U<:AbstractVector}
+    "Values of the time series"
     yvec ::T
+    "Positions of the values"
     xvec ::U
+    "Number of steps of a stable sift after which the sifting is aborted"
     stop_steps::Integer
 end
 
+"""
+SiftState
+
+Handle the  intermediate results of the sifting.
+"""
 mutable struct SiftState
+    "Values of the time series"
     yvec
+    "Position of the time steps"
     xvec
+    "Positions of the local maxima"
     maxes::Vector{Int}
+    "Positions of the local minima"
     mins::Vector{Int}
+    "Indices of the zero crossings"
     crosses::Vector{Int}
+    "sum of the abs value of yvec, this is used in the stopping criteria"
     s
+    "Number of steps on which the number of zerocrossings was fix"
     fix_steps::Integer
 end
 
@@ -194,7 +220,14 @@ function sift(yvec, xvec=1:length(yvec), tol=0.1)
     imf
 end
 
+"""
+ceemd(measurements, xvec; num_imfs=6)
 
+Compute the Complete Empirical Mode Decomposition
+of the time series with values measurements and time steps xvec.
+num_imfs is the Number of Intrinsic Mode Functions.
+Returns a list of num_imfs + 1 Vectors of the same size as measurements.
+"""
 function ceemd(measurements, xvec; num_imfs=6, numtrails=100, β=0.04, noise_ens = [β*std(measurements) .* randn(length(xvec)) for i in 1:numtrails])
     imfs = collect(take(CEEMDIterable(measurements,xvec,noise_ens),num_imfs))
     @show size.(imfs)
@@ -203,21 +236,35 @@ function ceemd(measurements, xvec; num_imfs=6, numtrails=100, β=0.04, noise_ens
     return imfs
 end
 
-struct EMDIterable{U<:AbstractVector,V<:AbstractVector}
-    yvec::U
-    xvec::V
+"""
+Iterator for the Empirical Mode Decomposition.
+The time series values are an AbstractVector of type T,
+and the time positions are an AbstractVector of type U.
+"""
+struct EMDIterable{T<:AbstractVector,U<:AbstractVector}
+    yvec::T
+    xvec::U
 end
 
 Base.IteratorSize(::Type{EMDIterable{U,V}}) where {U,V} = Base.SizeUnknown()
 
-import EmpiricalModeDecomposition: sift, ismonotonic
-using Statistics
+"""
+Iterator for the Complete Empirical Mode Decomposition.
+The time series values are an AbstractVector of type T,
+and the time positions are an AbstractVector of type U.
+"""
 struct CEEMDIterable{U<:AbstractVector,V<:AbstractVector,T<:AbstractVector}
+    "Vector with the values of the time series"
     yvec::U
+    "Vector with the positions of the time series"
     xvec::V
+    "Ensemble of noise which is a Vector of Vectors of the same size as yvec."
     noise_ens::T
 end
 
+"""
+Intermediate results of the CEEMD Iteration
+"""
 struct CEEMDState
   yvec
   iter_ens
@@ -280,7 +327,8 @@ end
 
 using Base.Iterators
 """
-    emd(measurements, xvec)
+emd(measurements, xvec)
+
 Return the Intrinsic Mode Functions and
 the residual of the Empirical Mode Decomposition of the measurements given on time steps given in xvec.
 """
@@ -291,10 +339,10 @@ end
 
 
 """
-    eemd(measurements, xvec, numtrails=100)
+eemd(measurements, xvec, numtrails=100)
 
-    Return the Intrinsic Mode Functions and
-    the residual of the ensemble Empirical Mode Decomposition of the measurements given on time steps xvec.
+Return the Intrinsic Mode Functions and
+the residual of the ensemble Empirical Mode Decomposition of the measurements given on time steps xvec.
 """
 function eemd(measurements, xvec, numtrails=100, num_imfs=6)
     random = randn(length(measurements))
@@ -381,7 +429,11 @@ end
 #     imfs
 # end
 
+"""
+maketestdata(seed)
 
+Return a simple example time series with the composing parts
+"""
 function maketestdata(seed)
   Random.seed!(seed)
   ## simulate data of length....
