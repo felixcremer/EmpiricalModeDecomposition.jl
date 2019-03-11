@@ -34,23 +34,23 @@ function plot_surr(dates, org, surrs)
     end
     #p = plot(dates, surr25, fillrange=surr75, color=:orange, line=nothing, label="Uncertainty box")
     p = plot(dates, surrs, color=:grey, alpha=0.3, label="")
-    plot!(p, dates, org, color=:blue, label="Original Imf" )
-    plot!(p, dates, surrmed, color=:red, label="Median Imf")
-    plot!(p, dates, surr05, label="5th Percentile IMF")
-    plot!(p, dates, surr95, label="95th Percentile IMF")
+    plot!(p, dates, org, color=:blue, label="")#, label="Original Imf" )
+    plot!(p, dates, surrmed, color=:red, label="")#, label="Median Imf")
+    plot!(p, dates, surr05, label="")#, label="5th Percentile IMF")
+    plot!(p, dates, surr95,label="")#, label="95th Percentile IMF")
     p
     #return surr25, surr75
 end
 
 function plot_ceemd_uncert(dates, ts, xs)
     imfplots = []
-    for i in 1:7
-        org, surr = bootstrap(ts, randomshuffle, y->ceemd(y, xs,num_imfs=i)[end-1],200)
+    for i in 1:5
+        org, surr = bootstrap(ts, iaaft, y->ceemd(y, xs,num_imfs=i, β=0.2)[end-1],200)
         p = plot_surr(dates, org, surr)
         push!(imfplots,p)
     end
-    p_org = plot(dates, ts)
-    fullplot = plot(p_org, imfplots..., layout=(4,2))
+    p_org = plot(dates, ts, label="")
+    fullplot = plot(p_org, imfplots..., layout=(3,2))
     fullplot
 end
 
