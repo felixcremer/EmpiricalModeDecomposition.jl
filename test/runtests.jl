@@ -16,6 +16,9 @@ end
     measurements = sin.(x)
     imfs = emd(measurements,x)
     @test isapprox(imfs[1], measurements, rtol=0.001)
+    t,x , parts = EmpiricalModeDecomposition.maketestdata(123)
+    imfs = emd(x, t)
+    @test isapprox(sum(imfs), x)
 end
 
 @testset "localmaxmin" begin
