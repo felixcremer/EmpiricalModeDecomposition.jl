@@ -76,12 +76,18 @@ ismonotonic(x::AbstractVector{T}) where T = isfinite(foldl((x,y)->y>=x ? y : typ
 
 abstract type InterpMethod end
 struct DierckXInterp <: InterpMethod end
-#immutable InterpolationsInterp <: InterpMethod end
+struct InterpolationsInterp <: InterpMethod end
 
 function interpolate(knotxvals,knotyvals,predictxvals,m::DierckXInterp, k=3)
+    #@show knotxvals
     spl = Dierckx.Spline1D(knotxvals, knotyvals, k=k)
     #@show spl, predictxvals
     Dierckx.evaluate(spl,predictxvals)
+end
+
+function interpolate(knotxvals, knotyvals, predictxvals, m::InterpolationsInterp, k=3)
+    itp = interpolate(knotyvals, BSpline(Cubic(Flat())), OnCell())
+    itp[predictxvals]
 end
 
 import Base.iterate, Base.IteratorSize
@@ -186,7 +192,7 @@ function sift(yvec, xvec=1:length(yvec), tol=0.1)
     ϵ = var(yvec) * tol
     #@show ϵ
     stop(state) = state.s <= ϵ
-    imf=nothing
+    imf=yvec
     num_steps = 0
     for (i, step) in enumerate(SiftIterable(yvec, xvec, 4, stop))
         #@show sum(abs, step.yvec)
