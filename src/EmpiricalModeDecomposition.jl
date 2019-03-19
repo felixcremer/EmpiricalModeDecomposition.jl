@@ -3,6 +3,7 @@ using Interpolations
 using Dierckx
 using IterTools
 using Random
+using LibEEMD
 
 
 export emd, eemd, ceemd, maketestdata, @bootstrap
