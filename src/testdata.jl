@@ -48,5 +48,5 @@ function colominas()
   s1[1:500] .= 0
   s1[751:1000] .=0
   s2 = sinpi.(2 .* 0.065 .*(x .- 1))
-  return x, s1+s2, (s1,s2)
+  return x, s1+s2, [s1,s2]
 end
