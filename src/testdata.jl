@@ -41,12 +41,27 @@ end
 colominas()
 
 Make testdata from Colominas 2014 et al.
+http://dx.doi.org/10.1016/j.bspc.2014.06.009
+
 """
 function colominas()
-  x = 1:1000
+  x=1:1000
   s1 = sinpi.(2 .* 0.255 .* (x .- 501))
   s1[1:500] .= 0
   s1[751:1000] .=0
   s2 = sinpi.(2 .* 0.065 .*(x .- 1))
-  return x, s1+s2, [s1,s2]
+  return x, s1+s2, (s1,s2)
+end
+
+
+"""
+fosso2014()
+
+Make testdata from Fosso 2014 et al.
+"""
+function fosso(x=0:.001:2)
+  x1 = @. 0.7 * sinpi(16 * x)
+  x2 = @. 0.7 * sinpi(48 * x)
+  x3 = @. 1.4 * sinpi(60 * x)
+  return x, x1 .+ x2 .+ x3, (x1, x2, x3)
 end
