@@ -38,22 +38,39 @@ function maketestdata(seed)
 end
 
 """
-colominas()
+colominas2014_s()
 
-Make testdata from Colominas 2014 et al.
+First testdata from Colominas 2014 et al.
 http://dx.doi.org/10.1016/j.bspc.2014.06.009
 
 """
-function colominas()
-  x=1:1000
-  s1 = sinpi.(2 .* 0.255 .* (x .- 501))
+function colominas2014_s()
+  n=1:1000
+  s1 = sinpi.(2 .* 0.255 .* (n .- 501))
   s1[1:500] .= 0
   s1[751:1000] .=0
-  s2 = sinpi.(2 .* 0.065 .*(x .- 1))
-  return x, s1+s2, (s1,s2)
+  s2 = sinpi.(2 .* 0.065 .*(n .- 1))
+  return n, s1+s2, [s1,s2]
 end
 
+"""
+colominas2014_x()
 
+Second testdata from Colominas 2014 et al.
+http://dx.doi.org/10.1016/j.bspc.2014.06.009
+It is not exactly the same, because ϕ is not feasable because the arccos is only defined for values between -1 and 1.
+
+"""
+function colominas2014_x()
+  n=1:1000
+  fmax=3//32
+  fmin=9//128
+  ϕ = acos((fmax -fmin)/(3fmin+fmax))
+  x1=3 .* exp.((.-((x .-500)./100).^2).*π) .* cospi.(5//8 .*(n.-1000))
+  x2 = @. cospi((fmax+fmin)*(n - 1000)+(fmax-fmin)*500(sinpi(n/500)+ϕ-sin(ϕ)))
+  x3 = exp.((.-((n.-1000)/200).^2) .*π) .* cospi.((7 .//128).*(n.-1000))
+  n, x1+x2+x3, [x1,x2,x3]
+end
 """
 fosso2014()
 
@@ -63,5 +80,5 @@ function fosso(x=0:.001:2)
   x1 = @. 0.7 * sinpi(16 * x)
   x2 = @. 0.7 * sinpi(48 * x)
   x3 = @. 1.4 * sinpi(60 * x)
-  return x, x1 .+ x2 .+ x3, (x1, x2, x3)
+  return x, x1 .+ x2 .+ x3, [x1, x2, x3]
 end
