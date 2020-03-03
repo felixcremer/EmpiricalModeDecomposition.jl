@@ -44,6 +44,7 @@ function iterate(iter::SiftIterable)
     maxes = Int[]
     mins = Int[]
     s =sum(abs, iter.yvec)
+    @debug "Absolute sum of the data $s"
     crosses = Int[]
 
     state = SiftState(iter.yvec, iter.xvec,maxes, mins, crosses, s,0)
@@ -56,6 +57,8 @@ function iterate(iter::SiftIterable, state::SiftState)
     localmaxmin!(state.yvec, state.maxes, state.mins)
     maxlen = length(state.maxes)
     minlen = length(state.mins)
+    @debug "The number of minima: $minlen"
+    @debug "The number of maxima: $maxlen"
     state.fix_steps == iter.stop_steps && return nothing
     zerocrossing!(state.yvec,state.crosses)
     abs(length(state.crosses) - maxlen - minlen) <=1 && (state.fix_steps +=1)
@@ -80,6 +83,7 @@ function iterate(iter::SiftIterable, state::SiftState)
     minTS = EmpiricalModeDecomposition.interpolate([first(state.xvec); state.xvec[state.mins]; last(state.xvec)],[smin; state.yvec[state.mins]; emin],state.xvec,DierckXInterp())
     subs = (maxTS+minTS)/2
     state.s =sum(abs,subs)
+    @debug "Absolute sum of the not yet decomposed data $(state.s)"
     state.yvec = state.yvec - subs
     return state, state
 end
