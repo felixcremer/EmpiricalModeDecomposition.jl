@@ -70,11 +70,18 @@ ismonotonic(x::AbstractVector{T}) where T = isfinite(foldl((x,y)->y>=x ? y : typ
 abstract type InterpMethod end
 struct DierckXInterp <: InterpMethod end
 #immutable InterpolationsInterp <: InterpMethod end
+struct DataInterp <: InterpMethod end
 
 function interpolate(knotxvals::Vector,knotyvals::Vector,predictxvals::AbstractVector,m::DierckXInterp, k=3)
     spl = Dierckx.Spline1D(knotxvals, knotyvals, k=k)
     #@show spl, predictxvals
     Dierckx.evaluate(spl,predictxvals)
+end
+
+function interpolate(knotxvals, knotyvals, predictxvals, m::DataInterp)
+    spl=DataInterpolations.CubicSpline(knotyvals, knotxvals)
+    @debug "Interpolation" spl
+    return spl.(predictxvals)
 end
 
 

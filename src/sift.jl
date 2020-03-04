@@ -77,10 +77,10 @@ function iterate(iter::SiftIterable, state::SiftState)
     #push!(state.maxes, length(state.yvec))
     #@show [first(state.xvec); state.xvec[state.maxes]; last(state.xvec)]
     #@show [smax; state.yvec[state.maxes]; emax]
-    maxTS = EmpiricalModeDecomposition.interpolate([first(state.xvec); state.xvec[state.maxes]; last(state.xvec)],[smax; state.yvec[state.maxes]; emax],state.xvec,DierckXInterp())
+    maxTS = EmpiricalModeDecomposition.interpolate([first(state.xvec); state.xvec[state.maxes]; last(state.xvec)],[smax; state.yvec[state.maxes]; emax],state.xvec,DataInterp())
     #state.yvec[1] = smin
     #state.yvec[end] = emin
-    minTS = EmpiricalModeDecomposition.interpolate([first(state.xvec); state.xvec[state.mins]; last(state.xvec)],[smin; state.yvec[state.mins]; emin],state.xvec,DierckXInterp())
+    minTS = EmpiricalModeDecomposition.interpolate([first(state.xvec); state.xvec[state.mins]; last(state.xvec)],[smin; state.yvec[state.mins]; emin],state.xvec,DataInterp())
     subs = (maxTS+minTS)/2
     state.s =sum(abs,subs)
     @debug "Absolute sum of the not yet decomposed data $(state.s)"

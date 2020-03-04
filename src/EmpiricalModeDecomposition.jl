@@ -5,6 +5,7 @@ using IterTools
 using Random
 using Statistics
 using Base.Iterators
+using DataInterpolations: DataInterpolations
 
 import Base.iterate, Base.IteratorSize
 
@@ -177,7 +178,7 @@ function iaestimation(imf, xs)
     maxes = Int[]
     mins = Int[]
     localmaxmin!(imf, maxes, mins)
-    EmpiricalModeDecomposition.interpolate(xs[maxes], imf[maxes], xs, DierckXInterp())
+    EmpiricalModeDecomposition.interpolate(xs[maxes], imf[maxes], xs, DataInterp())
 end
 
 
