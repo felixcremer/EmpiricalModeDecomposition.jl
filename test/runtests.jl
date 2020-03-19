@@ -41,7 +41,7 @@ end
     maxes = Int[]
     mins = Int[]
     EmpiricalModeDecomposition.localmaxmin!(y,maxes,mins)
-    @show maxes
+    @debug maxes
     @test EmpiricalModeDecomposition.get_edgepoint(y,t,maxes, first, !isless) == 1.5
     @test EmpiricalModeDecomposition.get_edgepoint(y,t,maxes, last, !isless)  ==1.5
 end
@@ -52,7 +52,7 @@ end
     measurements = sin.(x)
     imf = zero(measurements)
     for sift in Base.Iterators.take(EmpiricalModeDecomposition.SiftIterable(measurements,x,6),10)
-        #@show sift
+        @debug sift
         imf = sift.yvec
     end
     @test imf ≈ measurements

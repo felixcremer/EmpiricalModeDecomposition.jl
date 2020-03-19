@@ -30,12 +30,17 @@ struct EMDIterable{T<:AbstractVector,U<:AbstractVector}
 end
 
 function iterate(iter::EMDIterable, imf_prev=(iter.yvec,false))
+    @debug sum(abs, imf_prev[1]), ismonotonic(imf_prev[1])
+
     if imf_prev[2]
       return nothing
     elseif sum(abs,imf_prev[1])>0.0 && !ismonotonic(imf_prev[1])
       imf = sift(imf_prev[1],iter.xvec, 0.1)
+      @debug sum(abs, imf)
+      @debug imf == imf_prev[1]
       return imf,(imf_prev[1]-imf,false)
     else
+        @debug imf_prev
       return imf_prev[1],(imf_prev[1],true)
     end
 end
@@ -66,7 +71,7 @@ function eemd(measurements, xvec, numtrails=100, num_imfs=6)
     imfs_mean = emd(measurements .+ random, xvec, num_imfs)
     num_imfs = length(imfs_mean)
     for i in 1:numtrails
-        #@show length(imfs_mean)
+        @debug length(imfs_mean)
 
         randn!(random)
         imfs = EmpiricalModeDecomposition.emd(measurements .+ random, xvec, num_imfs)
@@ -77,7 +82,7 @@ function eemd(measurements, xvec, numtrails=100, num_imfs=6)
             imfs[length(imfs_mean)] = sum(imfs[length(imfs_mean):end])
             imfs = imfs[1:length(imfs_mean)]
         end
-        #@show length(imfs), length(imfs_mean)
+        @debug length(imfs), length(imfs_mean)
         imfs_mean .+= imfs
     end
 
@@ -143,7 +148,7 @@ function Base.iterate(iter::CEEMDIterable,state::CEEMDState)
     newstate = CEEMDState(state.yvec-imf,state.iter_ens,state.imf_state_ens,false)
     return imf,newstate
   else
-    @show state.yvec
+    @debug state.yvec
     return state.yvec,CEEMDState(state.yvec,state.iter_ens,state.imf_state_ens,true)
   end
 end
@@ -158,7 +163,7 @@ Returns a list of num_imfs + 1 Vectors of the same size as measurements.
 """
 function ceemd(measurements, xvec; num_imfs=6, numtrails=100, β=0.04, noise_ens = [β*std(measurements) .* randn(length(xvec)) for i in 1:numtrails])
     imfs = collect(take(CEEMDIterable(measurements,xvec,noise_ens),num_imfs))
-    @show size.(imfs)
+    @debug size.(imfs)
     residual = measurements - sum(imfs)
     push!(imfs, residual)
     return imfs

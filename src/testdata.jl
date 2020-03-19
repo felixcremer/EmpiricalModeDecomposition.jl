@@ -18,7 +18,7 @@ function maketestdata(seed)
 
   # generate a linear trend
   T = 0.1 .+ 0.2.*t
-  @show T
+  @debug T
 
   # some other oscillation
   a = 0.2
