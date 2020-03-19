@@ -40,17 +40,26 @@ Compute the edgepoint which should be used as the extrema on the edge for the sp
 """
 function get_edgepoint(y, xvec, extremas, pos, comp)
  #the x values must be embedded into a tuple
-    #@show knots
+    @debug knots
     if pos == first
-        index = [1,2]
+        if length(extremas) > 1
+            index = [extremas[1], extremas[2]]
+        else
+            index = [1, extremas...]
+        end
     elseif pos == last
-        index = [length(extremas) - 1, length(extremas)]
+        if length(extremas) > 1
+            index = [extremas[end-1], extremas[end]]
+        else
+            index = [extremas..., length(xvec)]
+        end
     end
-    knots = (xvec[extremas[index]],)
-    itp = Interpolations.interpolate(knots,y[extremas[index]], Gridded(Linear()))
+    @debug index
+    knots = (xvec[index],)
+    itp = Interpolations.interpolate(knots,y[index], Gridded(Linear()))
     expf = extrapolate(itp, Line())
     edgepoint = expf(pos(xvec))
-    #@show edgepoint
+    @debug edgepoint
     if comp(edgepoint, pos(y))
         edgepoint
     else
@@ -74,7 +83,7 @@ struct DataInterp <: InterpMethod end
 
 function interpolate(knotxvals::Vector,knotyvals::Vector,predictxvals::AbstractVector,m::DierckXInterp, k=3)
     spl = Dierckx.Spline1D(knotxvals, knotyvals, k=k)
-    #@show spl, predictxvals
+    @debug spl, predictxvals
     Dierckx.evaluate(spl,predictxvals)
 end
 

@@ -62,9 +62,10 @@ function iterate(iter::SiftIterable, state::SiftState)
     state.fix_steps == iter.stop_steps && return nothing
     zerocrossing!(state.yvec,state.crosses)
     abs(length(state.crosses) - maxlen - minlen) <=1 && (state.fix_steps +=1)
-    if maxlen<4 || minlen<4
+    if maxlen<1 || minlen<1
         return nothing
     end
+    @debug state.yvec, state.xvec, state.mins, state.maxes
     smin = get_edgepoint(state.yvec, state.xvec, state.mins, first, isless)
     smax = get_edgepoint(state.yvec, state.xvec, state.maxes, first, !isless)
     emin = get_edgepoint(state.yvec, state.xvec, state.mins, last, isless)
@@ -75,8 +76,8 @@ function iterate(iter::SiftIterable, state::SiftState)
     #push!(state.mins, length(state.yvec))
     #pushfirst!(state.maxes,1)
     #push!(state.maxes, length(state.yvec))
-    #@show [first(state.xvec); state.xvec[state.maxes]; last(state.xvec)]
-    #@show [smax; state.yvec[state.maxes]; emax]
+    @debug [first(state.xvec); state.xvec[state.maxes]; last(state.xvec)]
+    @debug [smax; state.yvec[state.maxes]; emax]
     maxTS = EmpiricalModeDecomposition.interpolate([first(state.xvec); state.xvec[state.maxes]; last(state.xvec)],[smax; state.yvec[state.maxes]; emax],state.xvec,DataInterp())
     #state.yvec[1] = smin
     #state.yvec[end] = emin
@@ -97,15 +98,16 @@ end
 """
 function sift(yvec, xvec=1:length(yvec), tol=0.1)
     ϵ = var(yvec) * tol
-    #@show ϵ
+    @debug ϵ
     stop(state) = state.s <= ϵ
     imf=nothing
     num_steps = 0
     for (i, step) in enumerate(halt(SiftIterable(yvec, xvec, 4), stop))
-        #@show sum(abs, step.yvec)
+        @debug sum(abs, step.yvec)
         imf= step.yvec
         num_steps = i
+        @debug num_steps, step.s
     end
-    #@show num_steps
+    @debug num_steps
     imf
 end
