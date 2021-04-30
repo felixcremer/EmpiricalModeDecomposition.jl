@@ -1,67 +1,68 @@
 using EmpiricalModeDecomposition
+import EmpiricalModeDecomposition: ismonotonic, localmaxmin!, get_edgepoint,
+    SiftIterable
 using Test
 using Random
-# write your own tests here
-@testset "ismonotonic" begin
-    @test EmpiricalModeDecomposition.ismonotonic(1:100)
-    @test EmpiricalModeDecomposition.ismonotonic(100:-1:1)
-    @test EmpiricalModeDecomposition.ismonotonic([1.0,2.0,3.0,6.0])
-    @test EmpiricalModeDecomposition.ismonotonic([6.0,5.0,1.0])
-    @test EmpiricalModeDecomposition.ismonotonic([1.0,3.0,2.0]) == false
-    @test EmpiricalModeDecomposition.ismonotonic([3.0,1.0,2.0]) == false
-end
 
-@testset "emd" begin
-    x = -1:0.1:2π+1
-    measurements = sin.(x)
-    imfs = emd(measurements,x)
-    @test isapprox(imfs[1], measurements, rtol=0.001)
-end
-
-@testset "localmaxmin" begin
-    maxes = Int[]
-    mins  = Int[]
-    x = zeros(100)
-    x_max = 2:10:100
-    x[x_max] .= 1
-    x_min = 5:10:100
-    x[x_min] .= -1
-    EmpiricalModeDecomposition.localmaxmin!(x,maxes,mins)
-    @test maxes == collect(x_max)
-    @test mins  == collect(x_min)
-end
-
-@testset "get_edgepoint" begin
-    t = 0:0.5:10
-    y = zero(t)
-    y[3]=1
-    y[5] = 0.5
-    y[17] = 0.5
-    y[19] = 1.0
-    maxes = Int[]
-    mins = Int[]
-    EmpiricalModeDecomposition.localmaxmin!(y,maxes,mins)
-    @show maxes
-    @test EmpiricalModeDecomposition.get_edgepoint(y,t,maxes, first, !isless) == 1.5
-    @test EmpiricalModeDecomposition.get_edgepoint(y,t,maxes, last, !isless)  ==1.5
-end
-
-
-@testset "SiftIterable" begin
-    x = -1:0.1:2π+1
-    measurements = sin.(x)
-    imf = zero(measurements)
-    for sift in Base.Iterators.take(EmpiricalModeDecomposition.SiftIterable(measurements,x,6),10)
-        #@show sift
-        imf = sift.yvec
+@testset "EmpiricalModeDecomposition.jl" begin
+    @testset "ismonotonic" begin
+        @test ismonotonic(1:100)
+        @test ismonotonic(100:-1:1)
+        @test ismonotonic([1.0,2.0,3.0,6.0])
+        @test ismonotonic([6.0,5.0,1.0])
+        @test !ismonotonic([1.0,3.0,2.0])
+        @test !ismonotonic([3.0,1.0,2.0])
     end
-    @test imf ≈ measurements
-end
 
-@testset "EEMD" begin
-    x = -1:0.1:2π+1
-    measurements = sin.(x) .+ cos.(2*x) .+ 2 .*x
-    imf = eemd(measurements, x)
+    @testset "emd" begin
+        x = -1:0.1:2π+1
+        measurements = sin.(x)
+        imfs = emd(measurements, x)
+        @test isapprox(imfs[1], measurements, rtol=0.001)
+    end
+
+    @testset "localmaxmin" begin
+        maxes = Int[]
+        mins  = Int[]
+        x = zeros(100)
+        x_max = 2:10:100
+        x[x_max] .= 1
+        x_min = 5:10:100
+        x[x_min] .= -1
+        localmaxmin!(x, maxes, mins)
+        @test maxes == collect(x_max)
+        @test mins  == collect(x_min)
+    end
+
+    @testset "get_edgepoint" begin
+        t = 0:0.5:10
+        y = zero(t)
+        y[3] = 1
+        y[5] = 0.5
+        y[17] = 0.5
+        y[19] = 1.0
+        maxes = Int[]
+        mins = Int[]
+        localmaxmin!(y, maxes, mins)
+        @test get_edgepoint(y, t, maxes, first, !isless) == 1.5
+        @test get_edgepoint(y, t, maxes, last, !isless)  == 1.5
+    end
+
+    @testset "SiftIterable" begin
+        x = -1:0.1:2π+1
+        measurements = sin.(x)
+        imf = zero(measurements)
+        for sift in Base.Iterators.take(SiftIterable(measurements,x,6),10)
+            imf = sift.yvec
+        end
+        @test imf ≈ measurements
+    end
+
+    @testset "EEMD" begin
+        x = -1:0.1:2π+1
+        measurements = sin.(x) .+ cos.(2*x) .+ 2 .*x
+        imf = eemd(measurements, x)
+    end
 end
 
 function maketestdata(seed)
@@ -80,11 +81,10 @@ function maketestdata(seed)
   # generate a linear trend
   T = 0.1 + 0.0002 .* t
 
-
   # some other oscillation
   a = 0.2
   b = 0.1
-  C = (1+a*cos.(b*2*pi*t))
+  C = 1+a*cos.(b*2*pi*t)
 
   # simple (coloured) noise
   φ = 0.3 # strengh of autocorrelation in noise
@@ -94,6 +94,6 @@ function maketestdata(seed)
     E[i] = φ*E[i-1]+(1-φ)*E[i]
   end
 
-  X = S.*C + 2 .*E
-  t,X,E
+  X = @. S*C + 2*E
+  t, X, E
 end
