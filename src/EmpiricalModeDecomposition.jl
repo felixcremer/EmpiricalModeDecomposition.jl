@@ -56,8 +56,8 @@ end
 """
     eemd(measurements, xvec, numtrails=100)
 
-Return the Intrinsic Mode Functions and the residual of the ensemble Empirical
-Mode Decomposition of the measurements given on time steps xvec.
+Return the Intrinsic Mode Functions and the residual of the ensemble Empirical Mode
+Decomposition (EMD) of the `measurements` given on time steps `xvec`.
 """
 function eemd(measurements, xvec, numtrails=100, num_imfs=6)
     random = randn(length(measurements))
@@ -98,56 +98,57 @@ end
 Intermediate results of the CEEMD Iteration
 """
 struct CEEMDState
-  yvec
-  iter_ens
-  imf_state_ens
-  finished::Bool
+    yvec
+    iter_ens
+    imf_state_ens
+    finished::Bool
 end
 Base.IteratorSize(::Type{CEEMDIterable{U,V,T}}) where {U,V,T} = Base.SizeUnknown()
 
 function Base.iterate(iter::CEEMDIterable)
-  imf0 = mean([sift(iter.yvec+noise,iter.xvec,0.1) for noise in iter.noise_ens])
-  iter_ens = EMDIterable.(iter.noise_ens,[iter.xvec])
-  state_ens = Tuple[]
-  imf_state_ens = iterate.(iter_ens)
-  imf0,CEEMDState(iter.yvec-imf0,iter_ens,imf_state_ens,false)
+    imf0 = mean([sift(iter.yvec+noise,iter.xvec,0.1) for noise in iter.noise_ens])
+    iter_ens = EMDIterable.(iter.noise_ens, [iter.xvec])
+    state_ens = Tuple[]
+    imf_state_ens = iterate.(iter_ens)
+    imf0, CEEMDState(iter.yvec-imf0, iter_ens, imf_state_ens, false)
 end
 
-function Base.iterate(iter::CEEMDIterable,state::CEEMDState)
+function Base.iterate(iter::CEEMDIterable, state::CEEMDState)
 
-  vstop = var(iter.yvec)*1e-10
+    vstop = var(iter.yvec)*1e-10
 
-  if state.finished
+    if state.finished
 
-    return nothing
+        return nothing
 
-  elseif sum(abs,state.yvec)>vstop && !ismonotonic(state.yvec)
+    elseif sum(abs,state.yvec)>vstop && !ismonotonic(state.yvec)
 
-      imf = vec(median(hcat([sift(state.yvec+noise[1],iter.xvec,0.1) for noise in state.imf_state_ens]...),dims = 2))
+        imf = vec(median(hcat([sift(state.yvec+noise[1], iter.xvec, 0.1) for
+            noise in state.imf_state_ens]...),dims = 2))
 
-    for iens in 1:length(state.iter_ens)
-      r = iterate(state.iter_ens[iens],state.imf_state_ens[iens][2])
-      if isnothing(r)
-        fill!(state.imf_state_ens[iens][1], 0)
-      else
-        imf_noise, ensstate = r
-        state.imf_state_ens[iens] = imf_noise, ensstate
-      end
+        for iens in 1:length(state.iter_ens)
+            r = iterate(state.iter_ens[iens], state.imf_state_ens[iens][2])
+            if isnothing(r)
+                fill!(state.imf_state_ens[iens][1], 0)
+            else
+                imf_noise, ensstate = r
+                state.imf_state_ens[iens] = imf_noise, ensstate
+            end
+        end
+
+        newstate = CEEMDState(state.yvec-imf, state.iter_ens, state.imf_state_ens, false)
+        return imf,newstate
+    else
+        @show state.yvec
+        return state.yvec,CEEMDState(state.yvec, state.iter_ens, state.imf_state_ens, true)
     end
-
-    newstate = CEEMDState(state.yvec-imf,state.iter_ens,state.imf_state_ens,false)
-    return imf,newstate
-  else
-    @show state.yvec
-    return state.yvec,CEEMDState(state.yvec,state.iter_ens,state.imf_state_ens,true)
-  end
 end
 
 """
     ceemd(measurements, xvec; num_imfs=6)
 
-Compute the Complete Empirical Mode Decomposition (CEMD) of the time series with
-values `measurements` and time steps `xvec`.
+Compute the Complete Empirical Mode Decomposition (CEMD) of the time series with values
+`measurements` and time steps `xvec`.
 `num_imfs` is the number of Intrinsic Mode Functions.
 Returns a list of num_imfs + 1 vectors of the same size as measurements.
 """
@@ -157,7 +158,7 @@ function ceemd(measurements, xvec; num_imfs=6, numtrails=100, β=0.04,
     @show size.(imfs)
     residual = measurements - sum(imfs)
     push!(imfs, residual)
-    imfs
+    return imfs
 end
 
 function tone_masking(ys, xs, tone)
