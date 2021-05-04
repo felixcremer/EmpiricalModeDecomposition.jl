@@ -1,77 +1,74 @@
 """
-localmaxmin!(x, maxes, mins)
+    localmaxmin!(x, maxes, mins)
 
 Detect the local extrema of x.
 Push the maxima into maxes and the minima into mins.
 """
-function localmaxmin!(y,maxes::Vector{Int},mins::Vector{Int})
+function localmaxmin!(y, maxes::Vector{Int}, mins::Vector{Int})
     empty!(maxes)
     empty!(mins)
-    for i in 2:(length(y)-1)
-        if y[i+1]<y[i]>y[i-1]
+    for i in 2:length(y)-1
+        if y[i+1] < y[i] > y[i-1]
             push!(maxes,i)
-        elseif y[i+1]>y[i]<y[i-1]
-            push!(mins,i)
+        elseif y[i+1] > y[i] < y[i-1]
+            push!(mins, i)
         end
     end
 end
 
 
 """
-zerocrossing!(y, crosses)
+    zerocrossing!(y, crosses)
 
-Compute the indices of zerocrossings of a vector
-It searches for elements which are either zero or near a signflip
-and pushes the indices into crosses.
+Compute the indices of zero crossings of vector `y`.
+It searches for elements which are either zero or near a signflip and pushes the
+indices into crosses.
 """
 function zerocrossing!(y, crosses)
     empty!(crosses)
     for i ∈ 1:(length(y)-1)
         if y[i] == zero(y[i]) || sign(y[i]) * sign(y[i+1]) == -1
-            push!(crosses, i)#
+            push!(crosses, i)
         end
     end
 end
 
 """
-get_edgepoint(y, xvec, extremas, pos, comp)
+    get_edgepoint(y, xvec, extremas, pos, comp)
 
-Compute the edgepoint which should be used as the extrema on the edge for the spline computation.
+Compute the edgepoint which should be used as the extrema on the edge for the
+spline computation.
 """
 function get_edgepoint(y, xvec, extremas, pos, comp)
- #the x values must be embedded into a tuple
-    #@show knots
     if pos == first
         index = [1,2]
     elseif pos == last
         index = [length(extremas) - 1, length(extremas)]
     end
+    # the x values must be embedded into a tuple
     knots = (xvec[extremas[index]],)
-    itp = Interpolations.interpolate(knots,y[extremas[index]], Gridded(Linear()))
+    itp = Interpolations.interpolate(knots, y[extremas[index]], Gridded(Linear()))
     expf = extrapolate(itp, Line())
     edgepoint = expf(pos(xvec))
-    #@show edgepoint
     if comp(edgepoint, pos(y))
         edgepoint
     else
         edgepoint = pos(y)
     end
-    return edgepoint
 end
 
 """
-ismonotonic(x::AbstractVector)
+    ismonotonic(x::AbstractVector)
 
-Check wether x is monotonic.
-This means, every value is either larger or smaller than the preceding value.
+Check whether `x` is monotonic.
 """
-ismonotonic(x::AbstractVector{T}) where T = isfinite(foldl((x,y)->y>=x ? y : typemax(T), x, init=typemin(T))) || isfinite(foldl((x,y)->y<=x ? y : typemin(T), x, init=typemax(T)))
+ismonotonic(x::AbstractVector) = issorted(x) || issorted(x, rev=true)
 
 abstract type InterpMethod end
 struct DierckXInterp <: InterpMethod end
 #immutable InterpolationsInterp <: InterpMethod end
 
-function interpolate(knotxvals::Vector,knotyvals::Vector,predictxvals::AbstractVector,m::DierckXInterp, k=3)
+function interpolate(knotxvals::Vector, knotyvals::Vector, predictxvals::AbstractVector, m::DierckXInterp, k=3)
     spl = Dierckx.Spline1D(knotxvals, knotyvals, k=k)
     #@show spl, predictxvals
     Dierckx.evaluate(spl,predictxvals)
