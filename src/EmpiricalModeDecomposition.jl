@@ -7,7 +7,7 @@ using Random
 using Statistics
 using Base.Iterators
 
-import Base.iterate, Base.IteratorSize
+import Base: iterate, IteratorSize, eltype
 
 export EMDIterable, SiftIterable
 export emd, eemd, ceemd, maketestdata
@@ -26,6 +26,8 @@ struct EMDIterable{T<:AbstractVector, U<:AbstractVector}
     yvec::T
     xvec::U
 end
+
+eltype(::Type{EMDIterable{T,U}}) where {T,U} = T
 
 function iterate(iter::EMDIterable, imf_prev=(iter.yvec,false))
     if imf_prev[2]
@@ -47,8 +49,8 @@ Base.IteratorSize(::Type{EMDIterable{U,V}}) where {U,V} = Base.SizeUnknown()
 Return the Intrinsic Mode Functions (IMF) and the residual of the Empirical Mode
 Decomposition (EMD) of the `measurements` given on time steps given in `xvec`.
 """
-function emd(measurements::Vector{T}, xvec, num_imfs=6) where T<:AbstractFloat
-    collect(Vector{T}, take(EMDIterable(measurements, xvec), num_imfs))
+function emd(measurements, xvec, num_imfs=6)
+    collect(take(EMDIterable(measurements, xvec), num_imfs))
 end
 
 
@@ -123,8 +125,7 @@ function Base.iterate(iter::CEEMDIterable, state::CEEMDState)
 
     elseif sum(abs,state.yvec)>vstop && !ismonotonic(state.yvec)
 
-        imf = vec(median(hcat([sift(state.yvec+noise[1], iter.xvec, 0.1) for
-            noise in state.imf_state_ens]...),dims = 2))
+        imf = vec(median(hcat([sift(state.yvec+noise[1], iter.xvec, 0.1) for noise in state.imf_state_ens]...),dims = 2))
 
         for iens in 1:length(state.iter_ens)
             r = iterate(state.iter_ens[iens], state.imf_state_ens[iens][2])

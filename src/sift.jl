@@ -65,10 +65,8 @@ function iterate(iter::SiftIterable, state::SiftState)
     emin = get_edgepoint(state.yvec, state.xvec, state.mins, last, isless)
     emax = get_edgepoint(state.yvec, state.xvec, state.maxes, last, !isless)
 
-    maxTS = interpolate([first(state.xvec); state.xvec[state.maxes]; last(state.xvec)],
-        [smax; state.yvec[state.maxes]; emax], state.xvec, DierckXInterp())
-    minTS = interpolate([first(state.xvec); state.xvec[state.mins]; last(state.xvec)],
-        [smin; state.yvec[state.mins]; emin], state.xvec, DierckXInterp())
+    maxTS = interpolate([first(state.xvec); state.xvec[state.maxes]; last(state.xvec)], [smax; state.yvec[state.maxes]; emax], state.xvec, DierckXInterp())
+    minTS = interpolate([first(state.xvec); state.xvec[state.mins]; last(state.xvec)], [smin; state.yvec[state.mins]; emin], state.xvec, DierckXInterp())
     subs = 0.5*(maxTS + minTS)
     state.s = sum(abs, subs)
     @debug "Absolute sum of the not yet decomposed data $(state.s)"
