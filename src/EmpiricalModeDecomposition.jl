@@ -125,6 +125,7 @@ function Base.iterate(iter::CEEMDIterable, state::CEEMDState)
 
     elseif sum(abs,state.yvec)>vstop && !ismonotonic(state.yvec)
 
+        # TODO: Format for clarity?
         imf = vec(median(hcat([sift(state.yvec+noise[1], iter.xvec, 0.1) for noise in state.imf_state_ens]...),dims = 2))
 
         for iens in 1:length(state.iter_ens)

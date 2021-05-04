@@ -64,7 +64,7 @@ function iterate(iter::SiftIterable, state::SiftState)
     smax = get_edgepoint(state.yvec, state.xvec, state.maxes, first, !isless)
     emin = get_edgepoint(state.yvec, state.xvec, state.mins, last, isless)
     emax = get_edgepoint(state.yvec, state.xvec, state.maxes, last, !isless)
-
+    # TODO: Format for clarity?
     maxTS = interpolate([first(state.xvec); state.xvec[state.maxes]; last(state.xvec)], [smax; state.yvec[state.maxes]; emax], state.xvec, DierckXInterp())
     minTS = interpolate([first(state.xvec); state.xvec[state.mins]; last(state.xvec)], [smin; state.yvec[state.mins]; emin], state.xvec, DierckXInterp())
     subs = 0.5*(maxTS + minTS)
