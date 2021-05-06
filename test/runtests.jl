@@ -1,6 +1,5 @@
 using EmpiricalModeDecomposition
-import EmpiricalModeDecomposition: ismonotonic, localmaxmin!, get_edgepoint,
-    SiftIterable
+import EmpiricalModeDecomposition: ismonotonic, localmaxmin!, get_edgepoint
 using Test
 using Random
 
@@ -48,13 +47,10 @@ using Random
         @test get_edgepoint(y, t, maxes, last, !isless)  == 1.5
     end
 
-    @testset "SiftIterable" begin
+    @testset "sift" begin
         x = -1:0.1:2π+1
         measurements = sin.(x)
-        imf = zero(measurements)
-        for sift in Base.Iterators.take(SiftIterable(measurements,x,6),10)
-            imf = sift.yvec
-        end
+        imf = sift(measurements, x; maxiter=10, stop_steps=6)
         @test imf ≈ measurements
     end
 
