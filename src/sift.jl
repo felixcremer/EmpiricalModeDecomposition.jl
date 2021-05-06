@@ -70,7 +70,7 @@ end
 
 # Utility functions
 
-function sift_iterator!(y, x;
+function sift_iterator(y, x;
                       reltol::Real = 0.1,
                       maxiter::Int = 10,
                       stop_steps::Int = 4)
@@ -123,7 +123,7 @@ function sift!(imf, y, x;
 
     imf = y
     # Actually perform sifting
-    iterable = sift_iterator!(imf, x; reltol, maxiter, stop_steps)
+    iterable = sift_iterator(imf, x; reltol, maxiter, stop_steps)
 
     for (iteration, item) = enumerate(iterable)
         verbose && @printf("%3d\t%1.2e\n", iteration, iterable.residual)
