@@ -65,14 +65,14 @@ function iterate(it::SiftIterable, iteration::Int=start(it))
     it.y .-= subs
 
     # Return the residual at item and iteration number as state
-    it.tol, iteration + 1
+    it.residual, iteration + 1
 end
 
 # Utility functions
 
 function sift_iterator(y, x;
                       reltol::Real = 0.1,
-                      maxiter::Int = 10,
+                      maxiter::Int = 6,
                       stop_steps::Int = 4)
     maxs, mins = Int[], Int[]
     crosses = Int[]
@@ -121,7 +121,7 @@ function sift!(imf, y, x;
              verbose::Bool = false,
              kwargs...)
 
-    imf = y
+    imf .= y
     # Actually perform sifting
     iterable = sift_iterator(imf, x; reltol, maxiter, stop_steps)
 
