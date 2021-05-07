@@ -9,7 +9,8 @@ using Base.Iterators
 
 import Base: iterate, IteratorSize, eltype
 
-export EMDIterable, SiftIterable
+export EMDIterable
+export sift, sift!
 export emd, eemd, ceemd, maketestdata
 
 include("testdata.jl")
@@ -33,7 +34,7 @@ function iterate(iter::EMDIterable, imf_prev=(iter.yvec,false))
     if imf_prev[2]
         return nothing
     elseif sum(abs, imf_prev[1]) > 0.0 && !ismonotonic(imf_prev[1])
-        imf = sift(imf_prev[1], iter.xvec, 0.1)
+        imf = sift(imf_prev[1], iter.xvec; reltol=0.1)
         return imf, (imf_prev[1]-imf, false)
     else
         return imf_prev[1], (imf_prev[1], true)
@@ -108,7 +109,7 @@ end
 Base.IteratorSize(::Type{CEEMDIterable{U,V,T}}) where {U,V,T} = Base.SizeUnknown()
 
 function Base.iterate(iter::CEEMDIterable)
-    imf0 = mean([sift(iter.yvec+noise,iter.xvec,0.1) for noise in iter.noise_ens])
+    imf0 = mean([sift(iter.yvec+noise, iter.xvec; reltol=0.1) for noise in iter.noise_ens])
     iter_ens = EMDIterable.(iter.noise_ens, [iter.xvec])
     state_ens = Tuple[]
     imf_state_ens = iterate.(iter_ens)
@@ -126,7 +127,7 @@ function Base.iterate(iter::CEEMDIterable, state::CEEMDState)
     elseif sum(abs,state.yvec)>vstop && !ismonotonic(state.yvec)
 
         # TODO: Format for clarity?
-        imf = vec(median(hcat([sift(state.yvec+noise[1], iter.xvec, 0.1) for noise in state.imf_state_ens]...),dims = 2))
+        imf = vec(median(hcat([sift(state.yvec+noise[1], iter.xvec; reltol=0.1) for noise in state.imf_state_ens]...),dims = 2))
 
         for iens in 1:length(state.iter_ens)
             r = iterate(state.iter_ens[iens], state.imf_state_ens[iens][2])
@@ -174,10 +175,10 @@ end
 
 function iaestimation(imf, xs)
     r = abs.(imf)
-    maxes = Int[]
+    maxs = Int[]
     mins = Int[]
-    localmaxmin!(imf, maxes, mins)
-    interpolate(xs[maxes], imf[maxes], xs, DierckXInterp())
+    localmaxmin!(imf, maxs, mins)
+    interpolate(xs[maxs], imf[maxs], xs, DierckXInterp())
 end
 
 
