@@ -1,7 +1,7 @@
 """
-maketestdata(seed)
+    maketestdata(seed)
 
-Return a simple example time series with the composing parts
+Return a simple example time series with the composing parts.
 """
 function maketestdata(seed=1234, nyears=10,step=12)
   Random.seed!(seed)
@@ -33,33 +33,33 @@ function maketestdata(seed=1234, nyears=10,step=12)
     E[i] = φ*E[i-1]+(1-φ)*E[i]
   end
 
-  X = S .* C .+ 2. .*E .+ T
-  t, X, [S,C,E,T]
+  X = @. S * C + 2 * E + T
+  t, X, [S, C, E, T]
 end
 
 """
 colominas2014_s()
 
-First testdata from Colominas 2014 et al.
+First test data from Colominas 2014 et al.
 http://dx.doi.org/10.1016/j.bspc.2014.06.009
 
 """
 function colominas2014_s()
-  n=1:1000
+  n = 1:1000
   s1 = sinpi.(2 .* 0.255 .* (n .- 501))
   s1[1:500] .= 0
   s1[751:1000] .=0
   s2 = sinpi.(2 .* 0.065 .*(n .- 1))
-  return n, s1+s2, [s1,s2]
+  n, s1+s2, [s1,s2]
 end
 
 """
-colominas2014_x()
+    colominas2014_x()
 
-Second testdata from Colominas 2014 et al.
+Second test data from Colominas 2014 et al.
 http://dx.doi.org/10.1016/j.bspc.2014.06.009
-It is not exactly the same, because ϕ is not feasable because the arccos is only defined for values between -1 and 1.
-
+It is not exactly the same, because ϕ is not feasable since the arccos is only
+defined for values between -1 and 1.
 """
 function colominas2014_x()
   n=1:2000
@@ -71,8 +71,9 @@ function colominas2014_x()
   x3 = exp.((.-((n.-1000)/200).^2) .*π) .* cospi.((7 .//128).*(n.-1000))
   n, x1+x2+x3, [x1,x2,x3]
 end
+
 """
-fosso2014()
+    fosso2014()
 
 Make testdata from Fosso 2017 et al.
 """
@@ -80,7 +81,7 @@ function fosso(x=0:.001:2)
   x1 = @. 0.7 * sinpi(16 * x)
   x2 = @. 0.7 * sinpi(48 * x)
   x3 = @. 1.4 * sinpi(60 * x)
-  return x, x1 .+ x2 .+ x3, [x1, x2, x3]
+  x, x1 .+ x2 .+ x3, [x1, x2, x3]
 end
 
 function sawtooth()
