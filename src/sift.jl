@@ -76,8 +76,9 @@ function iterate(iter::SiftIterable, state::SiftState)
     #push!(state.mins, length(state.yvec))
     #pushfirst!(state.maxes,1)
     #push!(state.maxes, length(state.yvec))
-    @debug [first(state.xvec); state.xvec[state.maxes]; last(state.xvec)]
+    #@show [first(state.xvec); state.xvec[state.maxes]; last(state.xvec)]
     @debug [smax; state.yvec[state.maxes]; emax]
+    #@show state.yvec[state.maxes]
     maxTS = EmpiricalModeDecomposition.interpolate([first(state.xvec); state.xvec[state.maxes]; last(state.xvec)],[smax; state.yvec[state.maxes]; emax],state.xvec,DataInterp())
     #state.yvec[1] = smin
     #state.yvec[end] = emin
