@@ -40,7 +40,6 @@ Compute the edgepoint which should be used as the extrema on the edge for the sp
 """
 function get_edgepoint(y, xvec, extremas, pos, comp)
  #the x values must be embedded into a tuple
-    @debug knots
     if pos == first
         if length(extremas) > 1
             index = [extremas[1], extremas[2]]
@@ -57,7 +56,7 @@ function get_edgepoint(y, xvec, extremas, pos, comp)
     @debug index
     knots = (xvec[index],)
     itp = Interpolations.interpolate(knots,y[index], Gridded(Linear()))
-    expf = extrapolate(itp, Line())
+    expf = Interpolations.extrapolate(itp, Interpolations.Line())
     edgepoint = expf(pos(xvec))
     @debug edgepoint
     if comp(edgepoint, pos(y))
