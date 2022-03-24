@@ -7,7 +7,7 @@ using Statistics
 using Base.Iterators
 using DataInterpolations: DataInterpolations
 
-import Base.iterate, Base.IteratorSize
+import Base.iterate, Base.IteratorSize, Base.eltype
 
 export EMDIterable, SiftIterable
 export emd, eemd, ceemd, maketestdata
@@ -15,6 +15,7 @@ export emd, eemd, ceemd, maketestdata
 include("testdata.jl")
 include("utils.jl")
 include("sift.jl")
+include("improvedceemdan.jl")
 
 
 
@@ -34,7 +35,7 @@ function iterate(iter::EMDIterable, imf_prev=(iter.yvec,false))
 
     if imf_prev[2]
       return nothing
-    elseif sum(abs,imf_prev[1])>0.0 && !ismonotonic(imf_prev[1])
+    elseif sum(abs,imf_prev[1])>eps(eltype(iter.yvec))*length(iter.xvec) && !ismonotonic(imf_prev[1])
       imf = sift(imf_prev[1],iter.xvec, 0.1)
       @debug sum(abs, imf)
       @debug imf == imf_prev[1]
@@ -46,7 +47,7 @@ function iterate(iter::EMDIterable, imf_prev=(iter.yvec,false))
 end
 
 Base.IteratorSize(::Type{EMDIterable{U,V}}) where {U,V} = Base.SizeUnknown()
-
+eltype(::Type{EMDIterable{U,V}}) where {U,V} = U
 
 """
 emd(measurements, xvec)
@@ -54,9 +55,14 @@ emd(measurements, xvec)
 Return the Intrinsic Mode Functions and
 the residual of the Empirical Mode Decomposition of the measurements given on time steps given in xvec.
 """
-function emd(measurements,xvec, num_imfs=6)
-    collect(take(EMDIterable(measurements,xvec),num_imfs))
-end
+function emd(measurements,xvec, num_imfs=typemax(Int))
+    imfs = collect(take(EMDIterable(measurements,xvec),num_imfs))
+    #@show typeof(imfs)
+    if !(sum(imfs) ≈ measurements)
+      imfs[end] += measurements-sum(imfs)
+    end
+    imfs
+  end
 
 
 
@@ -66,24 +72,25 @@ eemd(measurements, xvec, numtrails=100)
 Return the Intrinsic Mode Functions and
 the residual of the ensemble Empirical Mode Decomposition of the measurements given on time steps xvec.
 """
-function eemd(measurements, xvec, numtrails=100, num_imfs=6)
+function eemd(measurements, xvec; numtrails=100, num_imfs=ceil(Int, log(length(measurements))))
     random = randn(length(measurements))
-    imfs_mean = emd(measurements .+ random, xvec, num_imfs)
-    num_imfs = length(imfs_mean)
-    for i in 1:numtrails
+    #@show num_imfs
+    imfs_mean = [zero(measurements) for i in 1:num_imfs]
+    #num_imfs = min(num_imfs, length(imfs_mean))
+    #@show length(imfs_mean)
+    for i in  1:numtrails
         @debug length(imfs_mean)
-
         randn!(random)
         imfs = EmpiricalModeDecomposition.emd(measurements .+ random, xvec, num_imfs)
-        if length(imfs) < length(imfs_mean)
-            imfs_mean[length(imfs)] = sum(imfs_mean[length(imfs):end])
-            imfs_mean = imfs_mean[1:length(imfs)]
-        elseif length(imfs) > length(imfs_mean)
-            imfs[length(imfs_mean)] = sum(imfs[length(imfs_mean):end])
-            imfs = imfs[1:length(imfs_mean)]
-        end
-        @debug length(imfs), length(imfs_mean)
-        imfs_mean .+= imfs
+        #if length(imfs) < length(imfs_mean)
+        #    imfs_mean[length(imfs)] = sum(imfs_mean[length(imfs):end])
+        #    imfs_mean = imfs_mean[1:length(imfs)]
+        #elseif length(imfs) > length(imfs_mean)
+        #    imfs[length(imfs_mean)] = sum(imfs[length(imfs_mean):end])
+        #    imfs = imfs[1:length(imfs_mean)]
+        #end
+        #@show length(imfs), length(imfs_mean)
+        imfs_mean[begin:length(imfs)] .+= imfs
     end
 
     imfs_mean ./= numtrails
@@ -116,7 +123,8 @@ end
 Base.IteratorSize(::Type{CEEMDIterable{U,V,T}}) where {U,V,T} = Base.SizeUnknown()
 
 function Base.iterate(iter::CEEMDIterable)
-  imf0 = mean([sift(iter.yvec+noise,iter.xvec,0.1) for noise in iter.noise_ens])
+  imf0 = mean([sift(iter.yvec+noise,iter.xvec) for noise in iter.noise_ens])
+  #Why is iter.xvec wrapped in a vector here?
   iter_ens = EMDIterable.(iter.noise_ens,[iter.xvec])
   state_ens = Tuple[]
   imf_state_ens = iterate.(iter_ens)
@@ -156,10 +164,10 @@ end
 """
 ceemd(measurements, xvec; num_imfs=6)
 
-Compute the Complete Empirical Mode Decomposition
-of the time series with values measurements and time steps xvec.
-num_imfs is the Number of Intrinsic Mode Functions.
-Returns a list of num_imfs + 1 Vectors of the same size as measurements.
+  Compute the Complete Empirical Mode Decomposition
+  of the time series with values measurements and time steps xvec.
+  num_imfs is the Number of Intrinsic Mode Functions.
+  Returns a list of num_imfs + 1 Vectors of the same size as measurements.
 """
 function ceemd(measurements, xvec; num_imfs=6, numtrails=100, β=0.04, noise_ens = [β*std(measurements) .* randn(length(xvec)) for i in 1:numtrails])
     imfs = collect(take(CEEMDIterable(measurements,xvec,noise_ens),num_imfs))
