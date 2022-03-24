@@ -12,8 +12,8 @@ using Random
 end
 
 @testset "emd" begin
-    x = -1:0.1:2π+1
-    measurements = sin.(x)
+    x = 0:0.1:10
+    measurements = sinpi.(x)
     imfs = emd(measurements,x)
     @test isapprox(imfs[1], measurements, rtol=0.001)
 end
@@ -62,6 +62,7 @@ end
     x = -1:0.1:2π+1
     measurements = sin.(x) .+ cos.(2*x) .+ 2 .*x
     imf = eemd(measurements, x)
+    @test sum(imf) ≈ measurements
 end
 
 function maketestdata(seed)
