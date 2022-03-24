@@ -3,33 +3,33 @@ maketestdata(seed)
 
 Return a simple example time series with the composing parts
 """
-function maketestdata(seed)
+function maketestdata(seed=1234, nyears=10,step=12)
   Random.seed!(seed)
   ## simulate data of length....
-  N_tim = 240
-  NpY   = 24         # samples/year
-  t     = 1:N_tim
-  t     = t./NpY # your time vector
+  NpY   = 365/step         # samples/year
+  t = 1:step:(nyears*365)
+  #t     = t./NpY # your time vector
 
   # constant seasonal cycle
   A   = 2          # amplitude
-  phi = 13 * pi/12   # initial phase
-  S   = A .* cos.(2 .* pi .* t .+ phi)
+  phi = 13 * pi ./12   # initial phase
+  S   = A .* cos.(2 .*pi .* t ./ 365   .+ phi)
+
 
   # generate a linear trend
-  T = 0.1 .+ 0.2.*t
+  T = 0.1 .+ 0.02.*t
   @debug T
 
   # some other oscillation
   a = 0.2
   b = 0.1
-  C = 1 .+ a .*cos.(b*2*pi*t)
+  C = 1 .+ a .*cos.(b*2*pi*t./NpY)
 
   # simple (coloured) noise
   φ = 0.3 # strengh of autocorrelation in noise
-  E = randn(N_tim) .* 0.1
+  E = randn(length(t)) .* 0.1
 
-  for i = 2:N_tim
+  for i = 2:length(t)
     E[i] = φ*E[i-1]+(1-φ)*E[i]
   end
 
@@ -62,23 +62,37 @@ It is not exactly the same, because ϕ is not feasable because the arccos is onl
 
 """
 function colominas2014_x()
-  n=1:1000
+  n=1:2000
   fmax=3//32
   fmin=9//128
-  ϕ = acos((fmax -fmin)/(3fmin+fmax))
-  x1=3 .* exp.((.-((x .-500)./100).^2).*π) .* cospi.(5//8 .*(n.-1000))
-  x2 = @. cospi((fmax+fmin)*(n - 1000)+(fmax-fmin)*500(sinpi(n/500)+ϕ-sin(ϕ)))
+  ϕ = -acos((fmax -fmin)/(3fmin+fmax))
+  x1=3 .* exp.((.-((n .-500)./100).^2).*π) .* cospi.(5//8 .*(n.-1000))
+  x2 = cos.(π .* (fmax .+ fmin) .* (n .- 1000) .+ (fmax .- fmin) .* 500 .* (sinpi.(n ./ 500) .+ ϕ .- sin.(ϕ)))
   x3 = exp.((.-((n.-1000)/200).^2) .*π) .* cospi.((7 .//128).*(n.-1000))
   n, x1+x2+x3, [x1,x2,x3]
 end
 """
 fosso2014()
 
-Make testdata from Fosso 2014 et al.
+Make testdata from Fosso 2017 et al.
 """
 function fosso(x=0:.001:2)
   x1 = @. 0.7 * sinpi(16 * x)
   x2 = @. 0.7 * sinpi(48 * x)
   x3 = @. 1.4 * sinpi(60 * x)
   return x, x1 .+ x2 .+ x3, [x1, x2, x3]
+end
+
+function sawtooth()
+  a1 = 35.:-1:6.
+  a3 = 33.:-1:4
+  a2 = 27.:-1:-2
+  @show length.([a1,a2,a3])
+  b = 2.:-1:-2.
+  @show length(b)
+  c = 29:-1:25.
+  @show length(c)
+  sawtooth = append!(collect(b), a1,a2,a3,c) 
+  msaw = mean(sawtooth)
+  return 1:100, sawtooth, [sawtooth .- msaw, zero(sawtooth) .+ msaw]
 end

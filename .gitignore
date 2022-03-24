@@ -3,3 +3,4 @@
 *.jl.mem
 *.ipynb_checkpoints/
 Manifest.toml
+src/dev_auxil.jl
