@@ -57,7 +57,7 @@ function iterate(iter::SiftIterable, state::SiftState)
     state.fix_steps == iter.stop_steps && return nothing
     zerocrossing!(state.yvec,state.crosses)
     abs(length(state.crosses) - maxlen - minlen) <=1 && (state.fix_steps +=1)
-    if maxlen<1 || minlen<1
+    if maxlen < 2 || minlen < 2
         return nothing
     end
     @debug state.yvec, state.xvec, state.mins, state.maxes

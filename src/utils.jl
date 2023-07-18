@@ -55,8 +55,8 @@ function get_edgepoint(y, xvec, extremas, pos, comp)
         end
     end
     # the x values must be embedded into a tuple
-    knots = (xvec[extremas[index]],)
-    itp = Interpolations.interpolate(knots, y[extremas[index]], Gridded(Linear()))
+    knots = (xvec[index],)
+    itp = Interpolations.interpolate(knots, y[index], Gridded(Linear()))
     expf = extrapolate(itp, Line())
     edgepoint = expf(pos(xvec))
     if comp(edgepoint, pos(y))
@@ -79,6 +79,7 @@ struct DierckXInterp <: InterpMethod end
 struct DataInterp <: InterpMethod end
 
 function interpolate(knotxvals::Vector, knotyvals::Vector, predictxvals::AbstractVector, m::DierckXInterp, k=3)
+    @show knotxvals, knotyvals, k
     spl = Dierckx.Spline1D(knotxvals, knotyvals, k=k)
     @debug spl, predictxvals
     Dierckx.evaluate(spl,predictxvals)
