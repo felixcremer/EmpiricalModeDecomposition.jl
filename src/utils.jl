@@ -79,7 +79,7 @@ struct DierckXInterp <: InterpMethod end
 struct DataInterp <: InterpMethod end
 
 function interpolate(knotxvals::Vector, knotyvals::Vector, predictxvals::AbstractVector, m::DierckXInterp, k=3)
-    @show knotxvals, knotyvals, k
+    # @show knotxvals, knotyvals, k
     spl = Dierckx.Spline1D(knotxvals, knotyvals, k=k)
     @debug spl, predictxvals
     Dierckx.evaluate(spl,predictxvals)
